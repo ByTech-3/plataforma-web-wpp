@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   ROTULO_PAPEL,
   ROTULO_STATUS,
@@ -50,13 +51,25 @@ export default async function PaginaDashboard() {
       </section>
 
       <section className={CARTAO}>
+        <h2 className="text-sm font-semibold">CRM</h2>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          Cadastro e carteira de leads: origem, responsável, valor e etapa do funil, com histórico
+          registrado a cada mudança.
+        </p>
+        <Link
+          href="/crm"
+          className="mt-4 inline-block rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+        >
+          Abrir o CRM
+        </Link>
+      </section>
+
+      <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Em breve</h2>
         <ul className="mt-3 space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
           <li>
-            <span className="font-medium text-neutral-800 dark:text-neutral-200">
-              CRM e Kanban
-            </span>{' '}
-            — leads, pipelines, etapas, tags e responsável.
+            <span className="font-medium text-neutral-800 dark:text-neutral-200">Kanban</span> —
+            arrastar o lead entre as etapas do funil.
           </li>
           <li>
             <span className="font-medium text-neutral-800 dark:text-neutral-200">

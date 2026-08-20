@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { carregarContexto } from '@/lib/contexto';
 import { BotaoSair } from '@/components/BotaoSair';
+import { NavPrincipal } from '@/components/NavPrincipal';
 
 /**
  * Layout das páginas internas. É AQUI que a proteção de rota vale — o
@@ -36,7 +37,7 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-black/10 dark:border-white/15">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-widest text-neutral-500">
               ByTech3
@@ -46,8 +47,9 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="hidden truncate text-sm text-neutral-600 sm:inline dark:text-neutral-400">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <NavPrincipal />
+            <span className="hidden truncate text-sm text-neutral-600 lg:inline dark:text-neutral-400">
               {user.email}
             </span>
             <BotaoSair />
@@ -55,7 +57,7 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">{children}</main>
     </div>
   );
 }

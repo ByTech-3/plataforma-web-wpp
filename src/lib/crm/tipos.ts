@@ -1,0 +1,129 @@
+/**
+ * Tipos e constantes do CRM (Fase 3).
+ *
+ * As formas aqui espelham as tabelas da migration `0002_fase3_crm.sql`. Elas
+ * NÃO são a fonte da verdade de segurança — quem decide o que o usuário lê e
+ * escreve é a RLS no banco. Aqui é só o contrato de dados do frontend.
+ */
+
+/**
+ * Origem do lead: lista fechada (CLAUDE.md §9), a mesma do
+ * `check (origem in (...))` da tabela `leads`. Se divergir daqui, o banco
+ * recusa a gravação — de propósito.
+ */
+export const ORIGENS_LEAD = [
+  'Instagram',
+  'Facebook',
+  'Google',
+  'Indicação',
+  'Campanha específica',
+  'Site',
+  'WhatsApp direto',
+  'Outro',
+  'Não identificado',
+] as const;
+
+export type OrigemLead = (typeof ORIGENS_LEAD)[number];
+
+/** Nunca forçar o vendedor a inventar origem. */
+export const ORIGEM_PADRAO: OrigemLead = 'Não identificado';
+
+export function ehOrigemValida(valor: string): valor is OrigemLead {
+  return (ORIGENS_LEAD as readonly string[]).includes(valor);
+}
+
+export type TipoEtapa = 'aberta' | 'ganho' | 'perdido';
+
+export type Lead = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  email: string | null;
+  origem: string;
+  valor: number | null;
+  previsao_fechamento: string | null;
+  ultimo_contato_em: string | null;
+  responsavel_id: string | null;
+  arquivado: boolean;
+  criado_em: string;
+  atualizado_em: string | null;
+};
+
+/** Em que etapa de qual funil o lead está (vem de `lead_pipeline`). */
+export type EtapaAtual = {
+  vinculo_id: string;
+  pipeline_id: string;
+  pipeline_nome: string;
+  pipeline_padrao: boolean;
+  stage_id: string;
+  stage_nome: string;
+  tipo: TipoEtapa;
+  entrou_na_etapa_em: string;
+};
+
+/** Membro ativo da organização — vira opção de "responsável". */
+export type MembroOrg = {
+  user_id: string;
+  nome: string;
+  email: string | null;
+  papel: 'admin' | 'gestor' | 'vendedor';
+};
+
+/** Lead já enriquecido com responsável e etapa, pronto para a tela. */
+export type LeadDaTela = Lead & {
+  responsavel: MembroOrg | null;
+  etapa: EtapaAtual | null;
+};
+
+/** Uma linha da linha do tempo (tabela `activities`, gravada por trigger). */
+export type ItemHistorico = {
+  id: string;
+  tipo: string;
+  descricao: string | null;
+  dados: Record<string, unknown>;
+  criado_em: string;
+  user_id: string | null;
+  autor: string | null;
+};
+
+/** A primeira etapa do funil padrão — onde todo lead novo entra. */
+export type FunilPadrao = {
+  pipeline_id: string;
+  pipeline_nome: string;
+  primeira_etapa_id: string;
+  primeira_etapa_nome: string;
+};
+
+/**
+ * Estado dos formulários (React `useActionState`).
+ *
+ * `valores` devolve o que o usuário digitou para o formulário não esvaziar
+ * quando o banco recusa a gravação; `tentativa` só existe para forçar a
+ * remontagem dos campos com os valores devolvidos.
+ */
+export type ValoresFormLead = {
+  nome: string;
+  telefone: string;
+  email: string;
+  origem: string;
+  responsavel_id: string;
+  valor: string;
+  previsao_fechamento: string;
+};
+
+export type EstadoFormLead = {
+  erro: string | null;
+  valores: ValoresFormLead | null;
+  tentativa: number;
+};
+
+export const ESTADO_FORM_INICIAL: EstadoFormLead = {
+  erro: null,
+  valores: null,
+  tentativa: 0,
+};
+
+/** Estado das ações de um clique só (arquivar, restaurar, entrar no funil). */
+export type EstadoAcao = { erro: string | null };
+
+export const ESTADO_ACAO_INICIAL: EstadoAcao = { erro: null };
