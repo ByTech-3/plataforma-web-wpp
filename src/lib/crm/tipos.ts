@@ -127,3 +127,65 @@ export const ESTADO_FORM_INICIAL: EstadoFormLead = {
 export type EstadoAcao = { erro: string | null };
 
 export const ESTADO_ACAO_INICIAL: EstadoAcao = { erro: null };
+
+// ---------------------------------------------------------------- KANBAN
+
+/** Uma etiqueta aplicada a um lead. */
+export type TagLead = {
+  id: string;
+  nome: string;
+  cor: string | null;
+};
+
+/** Funil na lista do seletor. */
+export type FunilResumo = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  padrao: boolean;
+};
+
+/** Um cartão do quadro — é uma linha de `lead_pipeline` com o lead resolvido. */
+export type CartaoKanban = {
+  vinculo_id: string;
+  lead_id: string;
+  nome: string;
+  telefone: string | null;
+  valor: number | null;
+  responsavel: MembroOrg | null;
+  tags: TagLead[];
+  posicao: number;
+  entrou_na_etapa_em: string;
+};
+
+/** Uma coluna do quadro = uma etapa do funil. */
+export type ColunaKanban = {
+  id: string;
+  nome: string;
+  tipo: TipoEtapa;
+  cor: string | null;
+  posicao: number;
+  cartoes: CartaoKanban[];
+};
+
+export type Quadro = {
+  funil: FunilResumo;
+  colunas: ColunaKanban[];
+  total_cartoes: number;
+  atingiu_limite: boolean;
+};
+
+/**
+ * Pedido de movimentação de cartão.
+ *
+ * O cliente manda a INTENÇÃO (para qual etapa, em que posição da coluna), não
+ * o número da `posicao`. Quem calcula o número é o servidor, com os dados
+ * frescos do banco — senão dois vendedores arrastando ao mesmo tempo
+ * gravariam posições calculadas sobre uma tela velha.
+ */
+export type PedidoMover = {
+  vinculo_id: string;
+  stage_id: string;
+  /** Índice dentro da coluna de destino, já sem o cartão que está sendo movido. */
+  indice: number;
+};

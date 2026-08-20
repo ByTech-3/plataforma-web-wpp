@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const ITENS = [
   { href: '/dashboard', rotulo: 'Painel' },
   { href: '/crm', rotulo: 'CRM' },
+  { href: '/kanban', rotulo: 'Kanban' },
 ];
 
 export function NavPrincipal() {

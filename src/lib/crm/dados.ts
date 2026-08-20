@@ -14,12 +14,17 @@ import { criarClienteServidor } from '@/lib/supabase/server';
 import { carregarContexto, type ContextoOrganizacao } from '@/lib/contexto';
 import { paraNumero } from './formato';
 import type {
+  CartaoKanban,
+  ColunaKanban,
   EtapaAtual,
   FunilPadrao,
+  FunilResumo,
   ItemHistorico,
   Lead,
   LeadDaTela,
   MembroOrg,
+  Quadro,
+  TagLead,
   TipoEtapa,
 } from './tipos';
 
@@ -42,6 +47,20 @@ const CAMPOS_LEAD =
   'ultimo_contato_em, responsavel_id, arquivado, criado_em, atualizado_em';
 
 type LinhaLead = Omit<Lead, 'valor'> & { valor: unknown };
+
+/**
+ * Quebra uma lista de ids em lotes para o filtro `in`.
+ *
+ * `in` vira query string: algumas centenas de UUIDs de uma vez passariam de
+ * 7 KB de URL e esbarrariam no limite do proxy do Supabase.
+ */
+function emLotes(ids: string[], tamanho = 50): string[][] {
+  const lotes: string[][] = [];
+  for (let i = 0; i < ids.length; i += tamanho) {
+    lotes.push(ids.slice(i, i + tamanho));
+  }
+  return lotes;
+}
 
 function normalizarLead(linha: LinhaLead): Lead {
   return { ...linha, valor: paraNumero(linha.valor) };
@@ -112,16 +131,9 @@ async function carregarEtapasPorLead(
 
   const supabase = await criarClienteServidor();
 
-  // `in` vira query string: 200 UUIDs de uma vez passariam de 7 KB de URL e
-  // esbarrariam no limite do proxy. Vai em lotes.
-  const lotes: string[][] = [];
-  for (let i = 0; i < leadIds.length; i += 50) {
-    lotes.push(leadIds.slice(i, i + 50));
-  }
-
   const [vinculosPorLote, etapasResposta, funisResposta] = await Promise.all([
     Promise.all(
-      lotes.map((lote) =>
+      emLotes(leadIds).map((lote) =>
         supabase
           .from('lead_pipeline')
           .select('id, lead_id, pipeline_id, stage_id, entrou_na_etapa_em')
@@ -402,5 +414,252 @@ export async function carregarFunilPadrao(organizationId: string): Promise<Funil
     pipeline_nome: funil.nome,
     primeira_etapa_id: etapa.id,
     primeira_etapa_nome: etapa.nome,
+  };
+}
+
+// ============================================================================
+// KANBAN
+// ============================================================================
+
+/**
+ * Teto de cartões do quadro. Um funil com mais que isto vira tela ilegível
+ * antes de virar problema de banco; o aviso na tela diz que o corte existe,
+ * em vez de sumir com os cartões em silêncio.
+ */
+export const LIMITE_QUADRO = 500;
+
+/** Funis ativos da organização, para o seletor. Padrão primeiro. */
+export async function listarFunis(organizationId: string): Promise<FunilResumo[]> {
+  const supabase = await criarClienteServidor();
+
+  const { data, error } = await supabase
+    .from('pipelines')
+    .select('id, nome, descricao, padrao, posicao')
+    .eq('organization_id', organizationId)
+    .eq('arquivado', false)
+    .order('padrao', { ascending: false })
+    .order('posicao', { ascending: true });
+
+  if (error) {
+    throw new Error(`Falha ao carregar os funis: ${error.message}`);
+  }
+
+  return ((data ?? []) as { id: string; nome: string; descricao: string | null; padrao: boolean }[])
+    .map((funil) => ({
+      id: funil.id,
+      nome: funil.nome,
+      descricao: funil.descricao,
+      padrao: funil.padrao,
+    }));
+}
+
+/** Etiquetas de cada lead, para os cartões. */
+async function carregarTagsPorLead(
+  organizationId: string,
+  leadIds: string[],
+): Promise<Map<string, TagLead[]>> {
+  const mapa = new Map<string, TagLead[]>();
+  if (leadIds.length === 0) return mapa;
+
+  const supabase = await criarClienteServidor();
+
+  const [vinculosPorLote, tagsResposta] = await Promise.all([
+    Promise.all(
+      emLotes(leadIds).map((lote) =>
+        supabase.from('lead_tags').select('lead_id, tag_id').in('lead_id', lote),
+      ),
+    ),
+    supabase.from('tags').select('id, nome, cor').eq('organization_id', organizationId),
+  ]);
+
+  const erro = vinculosPorLote.find((resposta) => resposta.error)?.error ?? tagsResposta.error;
+  if (erro) {
+    throw new Error(`Falha ao carregar as tags: ${erro.message}`);
+  }
+
+  const tags = new Map(
+    ((tagsResposta.data ?? []) as TagLead[]).map((tag) => [tag.id, tag]),
+  );
+
+  for (const resposta of vinculosPorLote) {
+    for (const vinculo of (resposta.data ?? []) as { lead_id: string; tag_id: string }[]) {
+      const tag = tags.get(vinculo.tag_id);
+      if (!tag) continue;
+      const lista = mapa.get(vinculo.lead_id) ?? [];
+      lista.push(tag);
+      mapa.set(vinculo.lead_id, lista);
+    }
+  }
+
+  for (const lista of mapa.values()) {
+    lista.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+
+  return mapa;
+}
+
+/**
+ * Ordem dos cartões dentro da coluna.
+ *
+ * `posicao` manda; empate cai para o mais recente primeiro. O desempate
+ * importa de verdade: os leads criados no passo 2 entraram todos com
+ * `posicao = 0`, então sem ele a ordem seria a que o banco resolvesse
+ * devolver, e mudaria de um refresh para o outro.
+ */
+function ordenarCartoes(cartoes: CartaoKanban[]): CartaoKanban[] {
+  return [...cartoes].sort(
+    (a, b) =>
+      a.posicao - b.posicao ||
+      new Date(b.entrou_na_etapa_em).getTime() - new Date(a.entrou_na_etapa_em).getTime(),
+  );
+}
+
+/**
+ * O quadro de um funil.
+ *
+ * A regra de carteira vem pronta do banco: `lead_pipeline` é filtrada pela
+ * policy `lead_pipeline_select_carteira` (que chama `pode_ver_lead`). O
+ * vendedor recebe menos cartões que o gestor na mesma coluna, e nada aqui
+ * precisa saber disso.
+ *
+ * Leads arquivados não entram: o vínculo com o funil continua existindo, mas
+ * cartão de lead descartado só polui o quadro.
+ */
+export async function carregarQuadro(
+  organizationId: string,
+  pipelineId: string,
+): Promise<Quadro | null> {
+  const supabase = await criarClienteServidor();
+
+  const [funilResposta, etapasResposta, vinculosResposta] = await Promise.all([
+    supabase
+      .from('pipelines')
+      .select('id, nome, descricao, padrao')
+      .eq('organization_id', organizationId)
+      .eq('id', pipelineId)
+      .maybeSingle(),
+    supabase
+      .from('pipeline_stages')
+      .select('id, nome, tipo, cor, posicao')
+      .eq('pipeline_id', pipelineId)
+      .order('posicao', { ascending: true }),
+    // A ordem aqui não é a da tela (quem ordena a coluna é `ordenarCartoes`),
+    // mas sem ela o `limit` cortaria linhas ao acaso: com o corte por data de
+    // entrada na etapa, o que fica de fora é sempre o mais parado.
+    supabase
+      .from('lead_pipeline')
+      .select('id, lead_id, stage_id, posicao, entrou_na_etapa_em')
+      .eq('pipeline_id', pipelineId)
+      .order('entrou_na_etapa_em', { ascending: false })
+      .limit(LIMITE_QUADRO),
+  ]);
+
+  if (funilResposta.error) {
+    throw new Error(`Falha ao carregar o funil: ${funilResposta.error.message}`);
+  }
+  if (!funilResposta.data) return null;
+
+  if (etapasResposta.error) {
+    throw new Error(`Falha ao carregar as etapas: ${etapasResposta.error.message}`);
+  }
+  if (vinculosResposta.error) {
+    throw new Error(`Falha ao carregar os cartões: ${vinculosResposta.error.message}`);
+  }
+
+  const funil = funilResposta.data as FunilResumo;
+  const etapas = (etapasResposta.data ?? []) as {
+    id: string;
+    nome: string;
+    tipo: TipoEtapa;
+    cor: string | null;
+    posicao: number;
+  }[];
+
+  const vinculos = (vinculosResposta.data ?? []) as {
+    id: string;
+    lead_id: string;
+    stage_id: string;
+    posicao: unknown;
+    entrou_na_etapa_em: string;
+  }[];
+
+  // Os leads dos vínculos, já sem os arquivados. O `in` volta em lotes; o que
+  // não voltar (arquivado ou fora da carteira) simplesmente não vira cartão.
+  const leadIds = [...new Set(vinculos.map((vinculo) => vinculo.lead_id))];
+
+  const leadsPorLote = await Promise.all(
+    emLotes(leadIds).map((lote) =>
+      supabase
+        .from('leads')
+        .select('id, nome, telefone, valor, responsavel_id')
+        .eq('organization_id', organizationId)
+        .eq('arquivado', false)
+        .in('id', lote),
+    ),
+  );
+
+  const erroLeads = leadsPorLote.find((resposta) => resposta.error)?.error;
+  if (erroLeads) {
+    throw new Error(`Falha ao carregar os leads do quadro: ${erroLeads.message}`);
+  }
+
+  const leads = new Map(
+    leadsPorLote
+      .flatMap(
+        (resposta) =>
+          (resposta.data ?? []) as {
+            id: string;
+            nome: string;
+            telefone: string | null;
+            valor: unknown;
+            responsavel_id: string | null;
+          }[],
+      )
+      .map((lead) => [lead.id, lead]),
+  );
+
+  const [membros, tagsPorLead] = await Promise.all([
+    listarMembros(organizationId),
+    carregarTagsPorLead(organizationId, [...leads.keys()]),
+  ]);
+
+  const membrosPorId = new Map(membros.map((membro) => [membro.user_id, membro]));
+
+  const cartoesPorEtapa = new Map<string, CartaoKanban[]>();
+  for (const vinculo of vinculos) {
+    const lead = leads.get(vinculo.lead_id);
+    if (!lead) continue;
+
+    const cartao: CartaoKanban = {
+      vinculo_id: vinculo.id,
+      lead_id: lead.id,
+      nome: lead.nome,
+      telefone: lead.telefone,
+      valor: paraNumero(lead.valor),
+      responsavel: lead.responsavel_id ? membrosPorId.get(lead.responsavel_id) ?? null : null,
+      tags: tagsPorLead.get(lead.id) ?? [],
+      posicao: paraNumero(vinculo.posicao) ?? 0,
+      entrou_na_etapa_em: vinculo.entrou_na_etapa_em,
+    };
+
+    const lista = cartoesPorEtapa.get(vinculo.stage_id) ?? [];
+    lista.push(cartao);
+    cartoesPorEtapa.set(vinculo.stage_id, lista);
+  }
+
+  const colunas: ColunaKanban[] = etapas.map((etapa) => ({
+    id: etapa.id,
+    nome: etapa.nome,
+    tipo: etapa.tipo,
+    cor: etapa.cor,
+    posicao: etapa.posicao,
+    cartoes: ordenarCartoes(cartoesPorEtapa.get(etapa.id) ?? []),
+  }));
+
+  return {
+    funil,
+    colunas,
+    total_cartoes: colunas.reduce((soma, coluna) => soma + coluna.cartoes.length, 0),
+    atingiu_limite: vinculos.length >= LIMITE_QUADRO,
   };
 }
