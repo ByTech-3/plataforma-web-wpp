@@ -10,8 +10,12 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 if (!url || !anonKey) {
   throw new Error(
     'Supabase não configurado: defina NEXT_PUBLIC_SUPABASE_URL e ' +
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY em app-web/.env.local ' +
-      '(use .env.example como modelo) e reinicie o `npm run dev`.',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
+      'No seu computador: em app-web/.env.local (use .env.example como modelo), ' +
+      'reiniciando o `npm run dev` depois. ' +
+      'Na Vercel: Project Settings > Environment Variables, com um novo deploy ' +
+      'em seguida — variáveis NEXT_PUBLIC_* entram no bundle durante o build, ' +
+      'então mudá-las exige rebuild.',
   );
 }
 
