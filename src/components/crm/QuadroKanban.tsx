@@ -101,13 +101,22 @@ export function QuadroKanban({ colunasIniciais, mover }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {erro && <p className={ERRO}>{erro}</p>}
 
-      <div
-        className={`flex gap-4 overflow-x-auto pb-4 ${pendente ? 'opacity-70' : ''}`}
-        aria-busy={pendente}
+      {/* Indicador discreto no lugar de esmaecer o quadro: apagar a tela
+          inteira a cada arrasto dá a impressão de que o sistema travou, e o
+          cartão já se moveu de forma otimista — não há o que esperar. */}
+      <p
+        aria-live="polite"
+        className={`h-4 text-xs text-neutral-500 transition-opacity ${
+          pendente ? 'opacity-100' : 'opacity-0'
+        }`}
       >
+        Salvando a posição…
+      </p>
+
+      <div className="flex gap-4 overflow-x-auto pb-4" aria-busy={pendente}>
         {colunas.map((coluna) => (
           <Coluna
             key={coluna.id}
@@ -171,10 +180,10 @@ function Coluna({
 
   return (
     <section
-      className={`flex w-72 shrink-0 flex-col rounded-xl border transition ${
+      className={`flex max-h-[calc(100vh-14rem)] w-72 shrink-0 flex-col rounded-xl border transition ${
         recebendo
           ? 'border-emerald-500 bg-emerald-500/5'
-          : 'border-black/10 bg-black/[0.02] dark:border-white/15 dark:bg-white/[0.02]'
+          : 'border-black/10 bg-black/2 dark:border-white/15 dark:bg-white/2'
       }`}
       onDragOver={(evento) => {
         if (!arrasto) return;
@@ -189,7 +198,7 @@ function Coluna({
         aoSoltar(calcularIndice(lista.current, evento.clientY));
       }}
     >
-      <header className="border-b border-black/10 px-3 py-3 dark:border-white/15">
+      <header className="shrink-0 border-b border-black/10 px-3 py-3 dark:border-white/15">
         <div className="flex items-center gap-2">
           <span className={`h-2 w-2 shrink-0 rounded-full ${CORES_ETAPA[coluna.tipo]}`} aria-hidden />
           <h2 className="truncate text-sm font-semibold">{coluna.nome}</h2>
@@ -200,7 +209,10 @@ function Coluna({
         <p className="mt-1 text-xs text-neutral-500">{formatarMoeda(soma)}</p>
       </header>
 
-      <div ref={lista} className="flex min-h-32 flex-1 flex-col gap-2 p-3">
+      {/* A coluna rola por dentro. Sem isto, uma etapa com muitos cartões
+          estica a página inteira e o cabeçalho das outras colunas some da
+          vista — que é a sensação de "conteúdo cortado". */}
+      <div ref={lista} className="flex min-h-32 flex-1 flex-col gap-2 overflow-y-auto p-3">
         {coluna.cartoes.map((cartao, indice) => (
           <div key={cartao.vinculo_id}>
             {recebendo && alvo?.indice === indice && <Marcador />}

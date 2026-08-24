@@ -50,26 +50,33 @@ export default async function PaginaDashboard() {
         </Cartao>
       </section>
 
-      <section className={CARTAO}>
-        <h2 className="text-sm font-semibold">CRM</h2>
-        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-          Cadastro e carteira de leads: origem, responsável, valor e etapa do funil, com histórico
-          registrado a cada mudança.
-        </p>
-        <Link
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Atalho
+          titulo="CRM"
+          descricao="Carteira de leads: origem, responsável, valor e etapa, com histórico registrado a cada mudança."
           href="/crm"
-          className="mt-4 inline-block rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-        >
-          Abrir o CRM
-        </Link>
+          acao="Abrir o CRM"
+        />
+        <Atalho
+          titulo="Kanban"
+          descricao="O funil em colunas. Arraste o lead entre as etapas — cada movimento entra sozinho na linha do tempo."
+          href="/kanban"
+          acao="Abrir o Kanban"
+        />
       </section>
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Em breve</h2>
         <ul className="mt-3 space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
           <li>
-            <span className="font-medium text-neutral-800 dark:text-neutral-200">Kanban</span> —
-            arrastar o lead entre as etapas do funil.
+            <span className="font-medium text-neutral-800 dark:text-neutral-200">
+              Tags e filtros
+            </span>{' '}
+            — etiquetar leads e filtrar por responsável, origem, tag e etapa.
+          </li>
+          <li>
+            <span className="font-medium text-neutral-800 dark:text-neutral-200">Inbox</span> — as
+            conversas recentes do WhatsApp com os dados do CRM ao lado.
           </li>
           <li>
             <span className="font-medium text-neutral-800 dark:text-neutral-200">
@@ -77,14 +84,33 @@ export default async function PaginaDashboard() {
             </span>{' '}
             — convidar vendedores e definir permissões.
           </li>
-          <li>
-            <span className="font-medium text-neutral-800 dark:text-neutral-200">
-              Extensão do WhatsApp
-            </span>{' '}
-            — conectar o WhatsApp Web à sua carteira de leads.
-          </li>
         </ul>
       </section>
+    </div>
+  );
+}
+
+function Atalho({
+  titulo,
+  descricao,
+  href,
+  acao,
+}: {
+  titulo: string;
+  descricao: string;
+  href: string;
+  acao: string;
+}) {
+  return (
+    <div className={`flex flex-col ${CARTAO}`}>
+      <h2 className="text-sm font-semibold">{titulo}</h2>
+      <p className="mt-2 flex-1 text-sm text-neutral-600 dark:text-neutral-400">{descricao}</p>
+      <Link
+        href={href}
+        className="mt-4 inline-block self-start rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+      >
+        {acao}
+      </Link>
     </div>
   );
 }

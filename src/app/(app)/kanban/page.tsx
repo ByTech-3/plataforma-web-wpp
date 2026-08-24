@@ -130,13 +130,19 @@ export default async function PaginaKanban({
             Arraste os cartões entre as colunas. Cada troca de etapa entra sozinha na linha do tempo
             do lead — quem registra é o banco.
           </p>
-          {/* A `key` remonta o quadro quando os dados do servidor mudam, para o
-              estado local (usado no arrasto otimista) não ficar velho. */}
-          <QuadroKanban
-            key={assinatura(quadro.colunas)}
-            colunasIniciais={quadro.colunas}
-            mover={moverCartaoAction}
-          />
+          {/* `-mx-6 px-6` faz a rolagem horizontal ir de borda a borda do
+              container, em vez de parar na margem e dar a impressão de que a
+              última coluna está cortada.
+
+              A `key` remonta o quadro quando os dados do servidor mudam, para
+              o estado local (usado no arrasto otimista) não ficar velho. */}
+          <div className="-mx-6 px-6">
+            <QuadroKanban
+              key={assinatura(quadro.colunas)}
+              colunasIniciais={quadro.colunas}
+              mover={moverCartaoAction}
+            />
+          </div>
         </>
       )}
     </div>
