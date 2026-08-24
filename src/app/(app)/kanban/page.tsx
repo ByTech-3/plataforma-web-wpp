@@ -29,7 +29,13 @@ export default async function PaginaKanban({
   const funilPedido = typeof filtros.funil === 'string' ? filtros.funil : null;
 
   const organizacao = await organizacaoAtual();
-  const funis = await listarFunis(organizacao.organization_id);
+
+  // Os funis e a Inbox não dependem um do outro nem do quadro: pedir em
+  // sequência somava três idas ao banco que cabem em uma só janela de tempo.
+  const [funis, inbox] = await Promise.all([
+    listarFunis(organizacao.organization_id),
+    listarInbox(organizacao.organization_id),
+  ]);
 
   if (funis.length === 0) {
     return (
@@ -60,11 +66,6 @@ export default async function PaginaKanban({
       </Aviso>
     );
   }
-
-  // A Inbox é do vendedor logado: a policy `conversa_select_propria` só
-  // devolve as conversas dele. Gestor abrindo o mesmo quadro vê os mesmos
-  // cartões de lead e uma Inbox diferente — a dele.
-  const inbox = await listarInbox(organizacao.organization_id);
 
   const somaTotal = quadro.colunas.reduce(
     (total, coluna) => total + coluna.cartoes.reduce((soma, cartao) => soma + (cartao.valor ?? 0), 0),

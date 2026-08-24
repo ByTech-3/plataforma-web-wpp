@@ -32,7 +32,12 @@ export type RespostaPonte =
   | { estado: 'sem-aba' }
   | { estado: 'conversa-nao-abriu' }
   | { estado: 'erro'; mensagem: string }
-  | { estado: 'ok'; mensagens?: MensagemLida[]; navegou?: boolean };
+  | {
+      estado: 'ok';
+      mensagens?: MensagemLida[];
+      navegou?: boolean;
+      recarregou?: boolean;
+    };
 
 /** Quando nem a ponte responde: a extensão não está instalada nesta janela. */
 export const SEM_EXTENSAO = 'sem-extensao' as const;

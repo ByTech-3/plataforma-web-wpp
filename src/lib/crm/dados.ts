@@ -10,6 +10,7 @@
  *
  * Este módulo é SÓ SERVIDOR. Não importe em componente com "use client".
  */
+import { cache } from 'react';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { carregarContexto, type ContextoOrganizacao } from '@/lib/contexto';
 import { paraNumero } from './formato';
@@ -66,8 +67,18 @@ function normalizarLead(linha: LinhaLead): Lead {
   return { ...linha, valor: paraNumero(linha.valor) };
 }
 
-/** Membros ativos da organização — opções de "responsável" e autores do histórico. */
-export async function listarMembros(organizationId: string): Promise<MembroOrg[]> {
+/**
+ * Membros ativos da organização — opções de "responsável" e autores do
+ * histórico.
+ *
+ * `cache()` porque a mesma tela pede isto mais de uma vez: o quadro do Kanban
+ * chama para resolver os responsáveis dos cartões, a ficha chama para a linha
+ * do tempo, a listagem chama para a coluna. Eram duas consultas repetidas por
+ * chamada; agora são duas por requisição.
+ */
+export const listarMembros = cache(async function listarMembros(
+  organizationId: string,
+): Promise<MembroOrg[]> {
   const supabase = await criarClienteServidor();
 
   const { data: vinculos, error: erroVinculos } = await supabase
@@ -115,7 +126,7 @@ export async function listarMembros(organizationId: string): Promise<MembroOrg[]
       };
     })
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-}
+});
 
 /**
  * Em qual etapa cada lead está. Quando o lead está em mais de um funil
@@ -241,7 +252,10 @@ export async function listarLeads(
   // As contagens alimentam os rótulos do filtro e não dependem do teto acima.
   // `head: true` traz só o número, sem as linhas. Os totais também respeitam a
   // carteira: quem conta é a mesma policy de SELECT.
-  const [leadsResposta, ativosResposta, arquivadosResposta] = await Promise.all([
+  // A equipe entra nesta mesma janela: ela resolve a coluna "responsável" e
+  // não depende de quais leads voltaram. Esperar os leads para só então pedir
+  // os membros somava uma ida ao banco em série, à toa.
+  const [leadsResposta, ativosResposta, arquivadosResposta, membros] = await Promise.all([
     consulta,
     supabase
       .from('leads')
@@ -253,6 +267,7 @@ export async function listarLeads(
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', organizationId)
       .eq('arquivado', true),
+    listarMembros(organizationId),
   ]);
 
   if (leadsResposta.error) {
@@ -261,13 +276,10 @@ export async function listarLeads(
 
   const leads = ((leadsResposta.data ?? []) as unknown as LinhaLead[]).map(normalizarLead);
 
-  const [membros, etapas] = await Promise.all([
-    listarMembros(organizationId),
-    carregarEtapasPorLead(
-      organizationId,
-      leads.map((lead) => lead.id),
-    ),
-  ]);
+  const etapas = await carregarEtapasPorLead(
+    organizationId,
+    leads.map((lead) => lead.id),
+  );
 
   const membrosPorId = new Map(membros.map((membro) => [membro.user_id, membro]));
 
@@ -531,7 +543,10 @@ export async function carregarQuadro(
 ): Promise<Quadro | null> {
   const supabase = await criarClienteServidor();
 
-  const [funilResposta, etapasResposta, vinculosResposta] = await Promise.all([
+  // A equipe entra na primeira janela: ela resolve o responsável dos cartões e
+  // não depende de quais leads o quadro tem. Antes ela só começava depois dos
+  // leads, somando duas idas ao banco em série.
+  const [funilResposta, etapasResposta, vinculosResposta, membros] = await Promise.all([
     supabase
       .from('pipelines')
       .select('id, nome, descricao, padrao')
@@ -552,6 +567,7 @@ export async function carregarQuadro(
       .eq('pipeline_id', pipelineId)
       .order('entrou_na_etapa_em', { ascending: false })
       .limit(LIMITE_QUADRO),
+    listarMembros(organizationId),
   ]);
 
   if (funilResposta.error) {
@@ -618,10 +634,8 @@ export async function carregarQuadro(
       .map((lead) => [lead.id, lead]),
   );
 
-  const [membros, tagsPorLead] = await Promise.all([
-    listarMembros(organizationId),
-    carregarTagsPorLead(organizationId, [...leads.keys()]),
-  ]);
+  // `membros` já veio na primeira janela, lá em cima.
+  const tagsPorLead = await carregarTagsPorLead(organizationId, [...leads.keys()]);
 
   const membrosPorId = new Map(membros.map((membro) => [membro.user_id, membro]));
 

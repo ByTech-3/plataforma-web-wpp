@@ -18,11 +18,20 @@ import { NavPrincipal } from '@/components/NavPrincipal';
  */
 export default async function LayoutApp({ children }: { children: ReactNode }) {
   const supabase = await criarClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) {
+  // `getSession()` lê o cookie SEM ir à rede. Antes havia um `getUser()` aqui,
+  // que valida o token contra o servidor de auth — mas o proxy.ts JÁ fez essa
+  // validação nesta mesma requisição. Eram duas idas ao Supabase para
+  // responder a mesma pergunta, uma delas em toda navegação.
+  //
+  // Quem realmente autoriza continua sendo o banco: `meu_contexto()` abaixo
+  // roda com o JWT do usuário e a RLS decide o que volta. Um token forjado não
+  // passa por ela, e nenhum dado da organização aparece sem passar.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
     redirect('/login');
   }
 
@@ -33,6 +42,7 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
   }
 
   const organizacao = contexto[0];
+  const user = session.user;
 
   return (
     <div className="flex min-h-full flex-col">

@@ -6,24 +6,25 @@
  * O QUE ACONTECE ONDE:
  *   servidor  → autoriza (carteira + licença, decididas pelo banco) e, depois,
  *               registra o EVENTO no histórico.
- *   navegador → fala com a extensão, que lê a conversa e envia.
+ *   navegador → fala com a extensão, que abre a conversa, lê e envia.
  *
  * O TEXTO DA MENSAGEM NUNCA VAI AO SERVIDOR. Ele sai deste campo, atravessa a
  * extensão e entra no WhatsApp. As mensagens lidas para dar contexto vivem em
  * memória enquanto este painel está aberto e somem quando ele fecha — não há
  * tabela, cache nem storage para elas.
  *
+ * DUAS ESPERAS SEPARADAS, de propósito: a autorização (rápida, do servidor) e
+ * o contexto da conversa (mais lento, depende da extensão e do WhatsApp). O
+ * campo de mensagem libera assim que a primeira volta — quem já sabe o que vai
+ * escrever não fica esperando o histórico carregar.
+ *
  * UMA MENSAGEM POR VEZ, sempre iniciada por um clique do vendedor. Não existe
- * fila, agendamento nem repetição aqui de propósito: automação de envio pelo
- * WhatsApp Web é o caminho mais curto para o número do cliente ser banido.
+ * fila, agendamento nem repetição aqui: automação de envio pelo WhatsApp Web é
+ * o caminho mais curto para o número do cliente ser banido.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { autorizarEnvio, registrarEnvio } from '@/lib/crm/acoes-mensagem';
-import {
-  SEM_EXTENSAO,
-  perguntarExtensao,
-  type MensagemLida,
-} from '@/lib/crm/ponte-extensao';
+import { SEM_EXTENSAO, perguntarExtensao, type MensagemLida } from '@/lib/crm/ponte-extensao';
 
 type Props = {
   leadId: string;
@@ -31,12 +32,16 @@ type Props = {
   variante?: 'botao' | 'discreto';
 };
 
-type Situacao =
+type Autorizacao =
   | { fase: 'verificando' }
-  | { fase: 'bloqueado'; mensagem: string }
+  | { fase: 'liberado'; telefone: string }
+  | { fase: 'bloqueado'; mensagem: string };
+
+type Contexto =
+  | { fase: 'carregando' }
+  | { fase: 'pronto'; mensagens: MensagemLida[]; navegou: boolean; recarregou: boolean }
   | { fase: 'sem-extensao' }
   | { fase: 'sem-aba' }
-  | { fase: 'pronto'; telefone: string; mensagens: MensagemLida[]; navegou: boolean }
   | { fase: 'erro'; mensagem: string };
 
 const BOTAO_PRINCIPAL =
@@ -64,9 +69,7 @@ export function EnviarMensagem({ leadId, nome, variante = 'botao' }: Props) {
         Enviar mensagem
       </button>
 
-      {aberto && (
-        <PainelEnvio leadId={leadId} nome={nome} aoFechar={() => setAberto(false)} />
-      )}
+      {aberto && <PainelEnvio leadId={leadId} nome={nome} aoFechar={() => setAberto(false)} />}
     </>
   );
 }
@@ -80,86 +83,89 @@ function PainelEnvio({
   nome: string;
   aoFechar: () => void;
 }) {
-  const [situacao, setSituacao] = useState<Situacao>({ fase: 'verificando' });
+  const [autorizacao, setAutorizacao] = useState<Autorizacao>({ fase: 'verificando' });
+  const [contexto, setContexto] = useState<Contexto>({ fase: 'carregando' });
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
 
-  // Sem `setSituacao` síncrono aqui: o estado já nasce em "verificando", e
-  // mexer nele no corpo do efeito provoca um render a mais à toa. Quem
-  // recomeça pelo botão volta o estado antes de chamar.
-  const preparar = useCallback(async () => {
-    // 1) O banco decide se pode: carteira e licença.
-    const permissao = await autorizarEnvio(leadId);
-    if (!permissao.ok) {
-      setSituacao({ fase: 'bloqueado', mensagem: permissao.mensagem });
-      return;
-    }
-
-    // 2) A extensão lê a conversa — navegando até ela se a aba estiver em outra.
-    const leitura = await perguntarExtensao({
-      tipo: 'whatsapp/ler',
-      telefone: permissao.telefone,
-    });
+  /** Contexto da conversa: depende da extensão, então roda depois e à parte. */
+  const carregarContexto = useCallback(async (telefone: string) => {
+    const leitura = await perguntarExtensao({ tipo: 'whatsapp/ler', telefone });
 
     if (leitura === SEM_EXTENSAO) {
-      setSituacao({ fase: 'sem-extensao' });
+      setContexto({ fase: 'sem-extensao' });
       return;
     }
     if (leitura.estado === 'sem-aba') {
-      setSituacao({ fase: 'sem-aba' });
+      setContexto({ fase: 'sem-aba' });
       return;
     }
     if (leitura.estado === 'conversa-nao-abriu') {
-      setSituacao({
+      setContexto({
         fase: 'erro',
         mensagem:
-          'A conversa não abriu a tempo no WhatsApp Web. Confira a aba e tente de novo — o número pode não ter WhatsApp.',
+          'Não consegui abrir esta conversa no WhatsApp Web. O número pode não ter WhatsApp.',
       });
       return;
     }
     if (leitura.estado === 'erro') {
-      setSituacao({ fase: 'erro', mensagem: leitura.mensagem });
+      setContexto({ fase: 'erro', mensagem: leitura.mensagem });
       return;
     }
 
-    setSituacao({
+    setContexto({
       fase: 'pronto',
-      telefone: permissao.telefone,
       mensagens: leitura.mensagens ?? [],
       navegou: leitura.navegou ?? false,
+      recarregou: leitura.recarregou ?? false,
     });
-  }, [leadId]);
+  }, []);
+
+  const preparar = useCallback(async () => {
+    const permissao = await autorizarEnvio(leadId);
+
+    if (!permissao.ok) {
+      setAutorizacao({ fase: 'bloqueado', mensagem: permissao.mensagem });
+      setContexto({ fase: 'erro', mensagem: permissao.mensagem });
+      return;
+    }
+
+    // Libera o campo já: o contexto continua carregando por baixo.
+    setAutorizacao({ fase: 'liberado', telefone: permissao.telefone });
+    void carregarContexto(permissao.telefone);
+  }, [leadId, carregarContexto]);
 
   function recomecar() {
-    setSituacao({ fase: 'verificando' });
+    setContexto({ fase: 'carregando' });
     setResultado(null);
-    void preparar();
+    if (autorizacao.fase === 'liberado') {
+      void carregarContexto(autorizacao.telefone);
+    } else {
+      setAutorizacao({ fase: 'verificando' });
+      void preparar();
+    }
   }
 
-  // A regra existe para pegar `setState` SÍNCRONO em efeito, que provoca
-  // render em laço. Aqui todo estado é definido depois de um `await`, em
-  // resposta à autorização do servidor e à conversa com a extensão — que é
-  // exatamente o trabalho que precisa começar quando o painel abre.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void preparar();
   }, [preparar]);
 
   useEffect(() => {
-    if (situacao.fase === 'pronto') campo.current?.focus();
-  }, [situacao.fase]);
+    if (autorizacao.fase === 'liberado') campo.current?.focus();
+  }, [autorizacao.fase]);
 
   async function enviar() {
-    if (situacao.fase !== 'pronto' || !texto.trim() || enviando) return;
+    if (autorizacao.fase !== 'liberado' || !texto.trim() || enviando) return;
 
     setEnviando(true);
     setResultado(null);
 
     const envio = await perguntarExtensao({
       tipo: 'whatsapp/enviar',
-      telefone: situacao.telefone,
+      telefone: autorizacao.telefone,
       texto: texto.trim(),
     });
 
@@ -175,7 +181,9 @@ function PainelEnvio({
         texto:
           envio.estado === 'erro'
             ? envio.mensagem
-            : 'Não foi possível enviar. Confira a aba do WhatsApp Web.',
+            : envio.estado === 'sem-aba'
+              ? 'O WhatsApp Web não está aberto.'
+              : 'Não consegui abrir esta conversa no WhatsApp Web.',
       });
       return;
     }
@@ -190,8 +198,10 @@ function PainelEnvio({
       texto: registro.aviso ?? 'Mensagem enviada e registrada no histórico do lead.',
     });
 
-    void preparar();
+    void carregarContexto(autorizacao.telefone);
   }
+
+  const podeEscrever = autorizacao.fase === 'liberado';
 
   return (
     <div
@@ -213,10 +223,10 @@ function PainelEnvio({
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <Conteudo situacao={situacao} aoTentarDeNovo={recomecar} />
+          <Conteudo autorizacao={autorizacao} contexto={contexto} aoTentarDeNovo={recomecar} />
         </div>
 
-        {situacao.fase === 'pronto' && (
+        {podeEscrever && (
           <footer className="border-t border-black/10 px-5 py-4 dark:border-white/15">
             {resultado && (
               <p
@@ -251,7 +261,7 @@ function PainelEnvio({
                 {enviando ? 'Enviando…' : 'Enviar'}
               </button>
               <span className="text-xs text-neutral-500">
-                Uma mensagem por vez, enviada por você. Nada é disparado sozinho.
+                Uma mensagem por vez, enviada por você.
               </span>
             </div>
           </footer>
@@ -262,21 +272,19 @@ function PainelEnvio({
 }
 
 function Conteudo({
-  situacao,
+  autorizacao,
+  contexto,
   aoTentarDeNovo,
 }: {
-  situacao: Situacao;
+  autorizacao: Autorizacao;
+  contexto: Contexto;
   aoTentarDeNovo: () => void;
 }) {
-  if (situacao.fase === 'verificando') {
-    return <p className="text-sm text-neutral-600 dark:text-neutral-400">Abrindo a conversa…</p>;
+  if (autorizacao.fase === 'bloqueado') {
+    return <Aviso tom="amarelo">{autorizacao.mensagem}</Aviso>;
   }
 
-  if (situacao.fase === 'bloqueado') {
-    return <Aviso tom="amarelo">{situacao.mensagem}</Aviso>;
-  }
-
-  if (situacao.fase === 'sem-extensao') {
+  if (contexto.fase === 'sem-extensao') {
     return (
       <Aviso tom="amarelo">
         A extensão do ByTech3 não foi encontrada neste navegador. Instale-a e recarregue esta
@@ -285,11 +293,11 @@ function Conteudo({
     );
   }
 
-  if (situacao.fase === 'sem-aba') {
+  if (contexto.fase === 'sem-aba') {
     return (
       <div className="space-y-3">
         <Aviso tom="amarelo">
-          O WhatsApp Web não está aberto. Abra-o em outra aba, deixe-o conectado e tente de novo.
+          O WhatsApp Web não está aberto. Abra-o em outra aba, deixe-o conectado e atualize aqui.
         </Aviso>
         <div className="flex flex-wrap gap-3">
           <a
@@ -301,17 +309,17 @@ function Conteudo({
             Abrir o WhatsApp Web
           </a>
           <button type="button" onClick={aoTentarDeNovo} className={BOTAO_SECUNDARIO}>
-            Já abri — tentar de novo
+            Já abri — atualizar
           </button>
         </div>
       </div>
     );
   }
 
-  if (situacao.fase === 'erro') {
+  if (contexto.fase === 'erro') {
     return (
       <div className="space-y-3">
-        <Aviso tom="vermelho">{situacao.mensagem}</Aviso>
+        <Aviso tom="vermelho">{contexto.mensagem}</Aviso>
         <button type="button" onClick={aoTentarDeNovo} className={BOTAO_SECUNDARIO}>
           Tentar de novo
         </button>
@@ -319,25 +327,41 @@ function Conteudo({
     );
   }
 
+  if (contexto.fase === 'carregando') {
+    return (
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        {autorizacao.fase === 'verificando'
+          ? 'Verificando permissão…'
+          : 'Abrindo a conversa no WhatsApp…'}
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {situacao.navegou && (
+      {contexto.recarregou ? (
         <Aviso tom="neutro">
-          A aba do WhatsApp estava em outra conversa e foi levada até esta.
+          Este contato ainda não tinha conversa, então o WhatsApp precisou abrir uma nova.
         </Aviso>
+      ) : (
+        contexto.navegou && (
+          <Aviso tom="neutro">
+            A aba do WhatsApp estava em outra conversa e foi levada até esta.
+          </Aviso>
+        )
       )}
 
       <p className="text-xs font-medium uppercase tracking-widest text-neutral-500">
         Últimas mensagens
       </p>
 
-      {situacao.mensagens.length === 0 ? (
+      {contexto.mensagens.length === 0 ? (
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           Nenhuma mensagem nesta conversa ainda.
         </p>
       ) : (
         <ul className="space-y-2">
-          {situacao.mensagens.map((mensagem, indice) => (
+          {contexto.mensagens.map((mensagem, indice) => (
             <li
               key={`${indice}-${mensagem.horario ?? ''}`}
               className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
@@ -356,7 +380,7 @@ function Conteudo({
       )}
 
       <p className="pt-2 text-[11px] text-neutral-500">
-        Estas mensagens são lidas ao vivo do seu WhatsApp e não ficam guardadas em lugar nenhum.
+        Lidas ao vivo do seu WhatsApp. Não ficam guardadas em lugar nenhum.
       </p>
     </div>
   );
@@ -372,7 +396,8 @@ function Aviso({
   const estilos = {
     amarelo: 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-400',
     vermelho: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400',
-    neutro: 'border-black/10 bg-black/5 text-neutral-700 dark:border-white/15 dark:bg-white/10 dark:text-neutral-300',
+    neutro:
+      'border-black/10 bg-black/5 text-neutral-700 dark:border-white/15 dark:bg-white/10 dark:text-neutral-300',
   }[tom];
 
   return <p className={`rounded-md border px-3 py-2.5 text-sm ${estilos}`}>{children}</p>;
