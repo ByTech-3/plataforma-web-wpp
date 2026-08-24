@@ -189,3 +189,45 @@ export type PedidoMover = {
   /** Índice dentro da coluna de destino, já sem o cartão que está sendo movido. */
   indice: number;
 };
+
+// ------------------------------------------------------- GESTÃO DE FUNIS
+
+/** Um funil na tela de gestão — inclui arquivados e traz os contadores. */
+export type FunilGerenciavel = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  posicao: number;
+  padrao: boolean;
+  arquivado: boolean;
+  total_etapas: number;
+  total_leads: number;
+};
+
+/** Uma etapa na tela de gestão. `total_leads` alimenta o aviso de exclusão. */
+export type EtapaGerenciavel = {
+  id: string;
+  nome: string;
+  tipo: TipoEtapa;
+  cor: string | null;
+  posicao: number;
+  total_leads: number;
+};
+
+export const ROTULO_TIPO_ETAPA: Record<TipoEtapa, string> = {
+  aberta: 'Em aberto',
+  ganho: 'Ganho',
+  perdido: 'Perdido',
+};
+
+/**
+ * Cor de cada tipo, usada quando a etapa não tem cor própria.
+ *
+ * O tipo é o que os relatórios vão ler; a cor é escolha visual do cliente.
+ * Por isso o tipo tem cor padrão e a cor personalizada só se sobrepõe.
+ */
+export const COR_PADRAO_TIPO: Record<TipoEtapa, string> = {
+  aberta: '#0ea5e9',
+  ganho: '#10b981',
+  perdido: '#ef4444',
+};

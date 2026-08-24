@@ -78,6 +78,12 @@ export default async function PaginaKanban({
         <div className="flex flex-wrap items-center gap-3">
           <SeletorFunil funis={funis} atual={funilId} />
           <Link
+            href={`/funis/${funilId}`}
+            className="rounded-md border border-black/15 px-4 py-2.5 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          >
+            Editar etapas
+          </Link>
+          <Link
             href="/crm/novo"
             className="rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
           >

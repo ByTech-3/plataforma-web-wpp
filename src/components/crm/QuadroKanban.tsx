@@ -20,7 +20,13 @@ import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { ERRO } from '@/components/ui';
 import { formatarMoeda } from '@/lib/crm/formato';
-import type { CartaoKanban, ColunaKanban, EstadoAcao, PedidoMover } from '@/lib/crm/tipos';
+import {
+  COR_PADRAO_TIPO,
+  type CartaoKanban,
+  type ColunaKanban,
+  type EstadoAcao,
+  type PedidoMover,
+} from '@/lib/crm/tipos';
 
 type Props = {
   colunasIniciais: ColunaKanban[];
@@ -30,11 +36,10 @@ type Props = {
 type Arrasto = { vinculoId: string; colunaId: string; indice: number };
 type Alvo = { colunaId: string; indice: number };
 
-const CORES_ETAPA: Record<ColunaKanban['tipo'], string> = {
-  aberta: 'bg-sky-500',
-  ganho: 'bg-emerald-500',
-  perdido: 'bg-red-500',
-};
+/** Cor escolhida na gestão do funil; na falta dela, a cor do tipo. */
+function corDaEtapa(coluna: ColunaKanban): string {
+  return coluna.cor ?? COR_PADRAO_TIPO[coluna.tipo];
+}
 
 /** Em que posição da lista o cursor está, comparando com o meio de cada cartão. */
 function calcularIndice(lista: HTMLElement | null, clientY: number): number {
@@ -200,7 +205,11 @@ function Coluna({
     >
       <header className="shrink-0 border-b border-black/10 px-3 py-3 dark:border-white/15">
         <div className="flex items-center gap-2">
-          <span className={`h-2 w-2 shrink-0 rounded-full ${CORES_ETAPA[coluna.tipo]}`} aria-hidden />
+          <span
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ background: corDaEtapa(coluna) }}
+            aria-hidden
+          />
           <h2 className="truncate text-sm font-semibold">{coluna.nome}</h2>
           <span className="ml-auto rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:bg-white/10 dark:text-neutral-400">
             {total}
