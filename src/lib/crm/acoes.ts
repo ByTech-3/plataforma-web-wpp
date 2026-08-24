@@ -21,7 +21,7 @@ import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { carregarFunilPadrao, organizacaoAtual } from './dados';
 import { traduzirErroBanco } from './erros';
-import { paraNumero } from './formato';
+import { calcularPosicao, carregarColuna, renumerarVizinhos } from './ordem';
 import {
   ORIGEM_PADRAO,
   ehOrigemValida,
@@ -328,25 +328,8 @@ export async function entrarNoFunilPadraoAction(
   return { erro: null };
 }
 
-/**
- * Distância padrão entre cartões vizinhos.
- *
- * Arrastar entre dois cartões grava a MÉDIA dos vizinhos: com um passo de
- * 1000, cabem uns 10 movimentos no mesmo vão antes de a fração ficar pequena
- * demais — e quando fica, a coluna é renumerada (ver abaixo).
- */
-const PASSO_POSICAO = 1000;
 
-type CartaoDaColuna = { id: string; posicao: number; entrou_na_etapa_em: string };
 
-/** Mesma ordem da tela: `posicao` manda, empate cai para o mais recente. */
-function ordenarColuna(cartoes: CartaoDaColuna[]): CartaoDaColuna[] {
-  return [...cartoes].sort(
-    (a, b) =>
-      a.posicao - b.posicao ||
-      new Date(b.entrou_na_etapa_em).getTime() - new Date(a.entrou_na_etapa_em).getTime(),
-  );
-}
 
 /**
  * Move um cartão de etapa e/ou de posição dentro da coluna.
@@ -413,60 +396,21 @@ export async function moverCartaoAction(pedido: PedidoMover): Promise<EstadoAcao
   }
 
   // Coluna de destino como ela está agora, sem o cartão que está sendo movido.
-  const { data: vizinhos, error: erroVizinhos } = await supabase
-    .from('lead_pipeline')
-    .select('id, posicao, entrou_na_etapa_em')
-    .eq('pipeline_id', atual.pipeline_id)
-    .eq('stage_id', stageId)
-    .neq('id', vinculoId);
-
-  if (erroVizinhos) {
-    return { erro: traduzirErroBanco(erroVizinhos, { acao: 'mover o cartão' }) };
-  }
-
-  const coluna = ordenarColuna(
-    ((vizinhos ?? []) as { id: string; posicao: unknown; entrou_na_etapa_em: string }[]).map(
-      (linha) => ({
-        id: linha.id,
-        posicao: paraNumero(linha.posicao) ?? 0,
-        entrou_na_etapa_em: linha.entrou_na_etapa_em,
-      }),
-    ),
+  const { cartoes: coluna, erro: erroVizinhos } = await carregarColuna(
+    supabase,
+    atual.pipeline_id,
+    stageId,
+    vinculoId,
   );
 
-  const indice = Math.min(Math.max(indicePedido, 0), coluna.length);
-  const anterior = coluna[indice - 1]?.posicao;
-  const proximo = coluna[indice]?.posicao;
-
-  let novaPosicao: number;
-  if (anterior === undefined && proximo === undefined) {
-    novaPosicao = PASSO_POSICAO;
-  } else if (anterior === undefined) {
-    novaPosicao = proximo! - PASSO_POSICAO;
-  } else if (proximo === undefined) {
-    novaPosicao = anterior + PASSO_POSICAO;
-  } else {
-    novaPosicao = (anterior + proximo) / 2;
+  if (erroVizinhos) {
+    return { erro: `Não foi possível mover o cartão: ${erroVizinhos}` };
   }
 
-  // Renumerar é necessário quando a média não cria uma posição realmente entre
-  // os vizinhos. Acontece o tempo todo com os leads do passo 2, que entraram
-  // todos com `posicao = 0`: a média entre 0 e 0 continua 0, e o cartão
-  // voltaria para o lugar de onde saiu.
-  const precisaRenumerar =
-    anterior !== undefined &&
-    proximo !== undefined &&
-    (novaPosicao <= anterior || novaPosicao >= proximo);
-
-  const ordemFinal = [...coluna];
-  if (precisaRenumerar) {
-    ordemFinal.splice(indice, 0, {
-      id: vinculoId,
-      posicao: novaPosicao,
-      entrou_na_etapa_em: new Date(0).toISOString(),
-    });
-    novaPosicao = (indice + 1) * PASSO_POSICAO;
-  }
+  const { indice, posicao: novaPosicao, precisaRenumerar } = calcularPosicao(
+    coluna,
+    indicePedido,
+  );
 
   // O cartão movido primeiro: é o UPDATE que pode ser recusado por licença
   // vencida, e nesse caso nada mais deve ser tocado.
@@ -496,20 +440,10 @@ export async function moverCartaoAction(pedido: PedidoMover): Promise<EstadoAcao
   }
 
   if (precisaRenumerar) {
-    // Os vizinhos ganham posições espaçadas de novo. Quem enxerga o cartão na
-    // coluna também pode editá-lo (mesma carteira), então estes UPDATEs só
-    // falhariam por licença — e a licença já foi validada acima pelo cartão
-    // movido. Ainda assim, uma falha aqui não desfaz o movimento: a ordem sai
-    // aproximada, nunca o cartão volta para a etapa errada.
-    await Promise.all(
-      ordemFinal.map((cartao, posicaoNaColuna) => {
-        if (cartao.id === vinculoId) return null;
-        return supabase
-          .from('lead_pipeline')
-          .update({ posicao: (posicaoNaColuna + 1) * PASSO_POSICAO })
-          .eq('id', cartao.id);
-      }),
-    );
+    // Quem enxerga o cartão na coluna também pode editá-lo (mesma carteira),
+    // então estes UPDATEs só falhariam por licença — e ela já foi validada
+    // acima pelo cartão movido.
+    await renumerarVizinhos(supabase, coluna, indice, vinculoId);
   }
 
   revalidatePath('/kanban');

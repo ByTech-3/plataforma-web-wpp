@@ -65,3 +65,18 @@ export function paraNumero(valor: unknown): number | null {
   const numero = typeof valor === 'number' ? valor : Number(String(valor).replace(',', '.'));
   return Number.isFinite(numero) ? numero : null;
 }
+
+/**
+ * Deixa legível o telefone que veio do WhatsApp, sem alterar o conteúdo: só
+ * formata quando reconhece o padrão brasileiro com DDI e DDD. Qualquer outro
+ * formato volta como está — melhor cru que mascarado errado.
+ */
+export function formatarTelefone(valor: string | null): string {
+  if (!valor) return '—';
+  const numero = valor.replace(/\D/g, '');
+
+  const brasil = numero.match(/^55(\d{2})(\d{4,5})(\d{4})$/);
+  if (brasil) return `(${brasil[1]}) ${brasil[2]}-${brasil[3]}`;
+
+  return valor;
+}

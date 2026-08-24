@@ -4,9 +4,11 @@ import { AVISO, CARTAO } from '@/components/ui';
 import { QuadroKanban } from '@/components/crm/QuadroKanban';
 import { SeletorFunil } from '@/components/crm/SeletorFunil';
 import { moverCartaoAction } from '@/lib/crm/acoes';
+import { criarLeadDaConversa } from '@/lib/crm/acoes-inbox';
+import { listarInbox } from '@/lib/crm/inbox';
 import { LIMITE_QUADRO, carregarQuadro, listarFunis, organizacaoAtual } from '@/lib/crm/dados';
 import { formatarMoeda } from '@/lib/crm/formato';
-import type { ColunaKanban } from '@/lib/crm/tipos';
+import type { CartaoConversa, ColunaKanban } from '@/lib/crm/tipos';
 
 export const metadata: Metadata = { title: 'Kanban · ByTech3' };
 
@@ -59,6 +61,11 @@ export default async function PaginaKanban({
     );
   }
 
+  // A Inbox é do vendedor logado: a policy `conversa_select_propria` só
+  // devolve as conversas dele. Gestor abrindo o mesmo quadro vê os mesmos
+  // cartões de lead e uma Inbox diferente — a dele.
+  const inbox = await listarInbox(organizacao.organization_id);
+
   const somaTotal = quadro.colunas.reduce(
     (total, coluna) => total + coluna.cartoes.reduce((soma, cartao) => soma + (cartao.valor ?? 0), 0),
     0,
@@ -107,7 +114,10 @@ export default async function PaginaKanban({
         </p>
       )}
 
-      {quadro.total_cartoes === 0 ? (
+      {/* A Inbox é a primeira coluna de TODO quadro, inclusive de um funil
+          recém-criado: por isso o quadro não é mais considerado "vazio" só
+          porque nenhum lead entrou nele ainda. */}
+      {quadro.total_cartoes === 0 && inbox.length === 0 ? (
         <div className={CARTAO}>
           <h2 className="text-sm font-semibold">Nenhum lead neste funil ainda</h2>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -144,9 +154,11 @@ export default async function PaginaKanban({
               o estado local (usado no arrasto otimista) não ficar velho. */}
           <div className="-mx-6 px-6">
             <QuadroKanban
-              key={assinatura(quadro.colunas)}
+              key={assinatura(quadro.colunas, inbox)}
               colunasIniciais={quadro.colunas}
+              inboxInicial={inbox}
               mover={moverCartaoAction}
+              criarDaConversa={criarLeadDaConversa}
             />
           </div>
         </>
@@ -155,14 +167,22 @@ export default async function PaginaKanban({
   );
 }
 
-/** Impressão digital dos dados do servidor: muda quando algum cartão se move. */
-function assinatura(colunas: ColunaKanban[]): string {
-  return colunas
+/**
+ * Impressão digital dos dados do servidor: muda quando um cartão se move ou
+ * quando a Inbox é recapturada. É ela que remonta o quadro e descarta o estado
+ * otimista assim que os dados de verdade chegam.
+ */
+function assinatura(colunas: ColunaKanban[], inbox: CartaoConversa[]): string {
+  const quadro = colunas
     .map(
       (coluna) =>
         `${coluna.id}:${coluna.cartoes.map((cartao) => `${cartao.vinculo_id}@${cartao.posicao}`).join(',')}`,
     )
     .join('|');
+
+  const conversas = inbox.map((conversa) => `${conversa.id}:${conversa.situacao}`).join(',');
+
+  return `${quadro}#${conversas}`;
 }
 
 function Aviso({ titulo, children }: { titulo: string; children: React.ReactNode }) {

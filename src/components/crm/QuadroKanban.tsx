@@ -8,6 +8,10 @@
  * cartão também tem um seletor "mover para" — que aparece nas telas estreitas
  * e serve de caminho pelo teclado, que o arrastar não oferece.
  *
+ * A PRIMEIRA COLUNA é a Inbox: conversas recentes do WhatsApp que ainda NÃO
+ * são leads. Ela é só origem de arrasto, nunca destino — um lead não "volta"
+ * para conversa. Arrastar de lá para uma etapa é o que cria o lead.
+ *
  * O cliente decide POSIÇÃO VISUAL (qual coluna, entre quais cartões) e manda a
  * intenção. Quem calcula o número gravado em `lead_pipeline.posicao` é o
  * servidor, com os dados frescos do banco.
@@ -18,23 +22,42 @@
  */
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ERRO } from '@/components/ui';
-import { formatarMoeda } from '@/lib/crm/formato';
+import { CAMPO, ERRO, ROTULO } from '@/components/ui';
+import { formatarMoeda, formatarTelefone } from '@/lib/crm/formato';
 import {
   COR_PADRAO_TIPO,
+  type CartaoConversa,
   type CartaoKanban,
   type ColunaKanban,
   type EstadoAcao,
+  type PedidoCriarDaConversa,
   type PedidoMover,
 } from '@/lib/crm/tipos';
 
 type Props = {
   colunasIniciais: ColunaKanban[];
+  inboxInicial: CartaoConversa[];
   mover: (pedido: PedidoMover) => Promise<EstadoAcao>;
+  criarDaConversa: (
+    pedido: PedidoCriarDaConversa,
+  ) => Promise<EstadoAcao & { lead_id?: string }>;
 };
 
-type Arrasto = { vinculoId: string; colunaId: string; indice: number };
+type Arrasto =
+  | { tipo: 'lead'; vinculoId: string; colunaId: string; indice: number }
+  | { tipo: 'conversa'; conversa: CartaoConversa };
+
 type Alvo = { colunaId: string; indice: number };
+
+/** Cartão temporário enquanto o servidor não devolve o lead criado. */
+type Provisorio = { id: string; colunaId: string; nome: string };
+
+/** Conversa esperando o vendedor confirmar o telefone antes de virar lead. */
+type Confirmacao = { conversa: CartaoConversa; stageId: string; indice: number };
+
+const BOTAO_MENOR =
+  'rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition ' +
+  'hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10';
 
 /** Cor escolhida na gestão do funil; na falta dela, a cor do tipo. */
 function corDaEtapa(coluna: ColunaKanban): string {
@@ -52,23 +75,27 @@ function calcularIndice(lista: HTMLElement | null, clientY: number): number {
   return cartoes.length;
 }
 
-export function QuadroKanban({ colunasIniciais, mover }: Props) {
+export function QuadroKanban({ colunasIniciais, inboxInicial, mover, criarDaConversa }: Props) {
   const [colunas, setColunas] = useState(colunasIniciais);
+  const [inbox, setInbox] = useState(inboxInicial);
   const [arrasto, setArrasto] = useState<Arrasto | null>(null);
   const [alvo, setAlvo] = useState<Alvo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [provisorios, setProvisorios] = useState<Provisorio[]>([]);
+  const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null);
   const [pendente, iniciar] = useTransition();
 
-  function aplicarMovimento(
-    origem: Arrasto,
-    colunaDestinoId: string,
-    indiceVisual: number,
-  ) {
+  function limparArrasto() {
+    setArrasto(null);
+    setAlvo(null);
+  }
+
+  function moverLead(origem: Extract<Arrasto, { tipo: 'lead' }>, destinoId: string, visual: number) {
     const anterior = colunas;
 
     const copia = colunas.map((coluna) => ({ ...coluna, cartoes: [...coluna.cartoes] }));
     const colunaOrigem = copia.find((coluna) => coluna.id === origem.colunaId);
-    const colunaDestino = copia.find((coluna) => coluna.id === colunaDestinoId);
+    const colunaDestino = copia.find((coluna) => coluna.id === destinoId);
     if (!colunaOrigem || !colunaDestino) return;
 
     const [cartao] = colunaOrigem.cartoes.splice(origem.indice, 1);
@@ -76,15 +103,12 @@ export function QuadroKanban({ colunasIniciais, mover }: Props) {
 
     // O índice visual conta com o cartão arrastado ainda no lugar antigo.
     // Na mesma coluna, tirá-lo de lá desloca tudo o que vem depois.
-    let indice = indiceVisual;
-    if (origem.colunaId === colunaDestinoId && origem.indice < indiceVisual) {
-      indice -= 1;
-    }
+    let indice = visual;
+    if (origem.colunaId === destinoId && origem.indice < visual) indice -= 1;
     indice = Math.min(Math.max(indice, 0), colunaDestino.cartoes.length);
 
-    // Soltou no mesmo lugar: não vale uma ida ao banco (nem um evento no
-    // histórico, se fosse troca de etapa).
-    if (origem.colunaId === colunaDestinoId && indice === origem.indice) return;
+    // Soltou no mesmo lugar: não vale uma ida ao banco.
+    if (origem.colunaId === destinoId && indice === origem.indice) return;
 
     colunaDestino.cartoes.splice(indice, 0, cartao);
 
@@ -94,7 +118,7 @@ export function QuadroKanban({ colunasIniciais, mover }: Props) {
     iniciar(async () => {
       const resultado = await mover({
         vinculo_id: cartao.vinculo_id,
-        stage_id: colunaDestinoId,
+        stage_id: destinoId,
         indice,
       });
 
@@ -105,46 +129,105 @@ export function QuadroKanban({ colunasIniciais, mover }: Props) {
     });
   }
 
+  /**
+   * Conversa vira lead.
+   *
+   * Com telefone lido pela extensão, cria direto. Sem telefone, abre o
+   * formulário curto pedindo o número — a mesma regra do painel: lead sem
+   * telefone é quase inútil para follow-up, mas telefone adivinhado é pior.
+   */
+  function criarDeConversa(conversa: CartaoConversa, destinoId: string, visual: number) {
+    if (conversa.situacao !== 'nova') return;
+
+    if (!conversa.telefone) {
+      setErro(null);
+      setConfirmacao({ conversa, stageId: destinoId, indice: visual });
+      return;
+    }
+
+    executarCriacao(conversa, destinoId, visual);
+  }
+
+  function executarCriacao(
+    conversa: CartaoConversa,
+    destinoId: string,
+    indice: number,
+    dadosConfirmados?: { nome: string; telefone: string | null },
+  ) {
+    const inboxAnterior = inbox;
+    const provisorio: Provisorio = {
+      id: `provisorio-${conversa.id}`,
+      colunaId: destinoId,
+      nome: dadosConfirmados?.nome ?? conversa.titulo,
+    };
+
+    setErro(null);
+    setInbox((atual) => atual.filter((item) => item.id !== conversa.id));
+    setProvisorios((atual) => [...atual, provisorio]);
+
+    iniciar(async () => {
+      const resultado = await criarDaConversa({
+        conversa_id: conversa.id,
+        stage_id: destinoId,
+        indice,
+        ...(dadosConfirmados
+          ? { nome: dadosConfirmados.nome, telefone: dadosConfirmados.telefone }
+          : {}),
+      });
+
+      setProvisorios((atual) => atual.filter((item) => item.id !== provisorio.id));
+
+      if (resultado.erro) {
+        setInbox(inboxAnterior);
+        setErro(resultado.erro);
+      }
+    });
+  }
+
   return (
     <div className="space-y-3">
       {erro && <p className={ERRO}>{erro}</p>}
 
       {/* Indicador discreto no lugar de esmaecer o quadro: apagar a tela
-          inteira a cada arrasto dá a impressão de que o sistema travou, e o
-          cartão já se moveu de forma otimista — não há o que esperar. */}
+          inteira a cada arrasto dá a impressão de que o sistema travou. */}
       <p
         aria-live="polite"
         className={`h-4 text-xs text-neutral-500 transition-opacity ${
           pendente ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        Salvando a posição…
+        Salvando…
       </p>
 
       <div className="flex gap-4 overflow-x-auto pb-4" aria-busy={pendente}>
+        <ColunaInbox
+          conversas={inbox}
+          arrastando={arrasto?.tipo === 'conversa' ? arrasto.conversa.id : null}
+          aoIniciarArrasto={(conversa) => setArrasto({ tipo: 'conversa', conversa })}
+          aoTerminarArrasto={limparArrasto}
+        />
+
         {colunas.map((coluna) => (
           <Coluna
             key={coluna.id}
             coluna={coluna}
+            colunas={colunas}
             arrasto={arrasto}
             alvo={alvo}
-            colunas={colunas}
+            provisorios={provisorios.filter((item) => item.colunaId === coluna.id)}
             aoIniciarArrasto={setArrasto}
-            aoTerminarArrasto={() => {
-              setArrasto(null);
-              setAlvo(null);
-            }}
+            aoTerminarArrasto={limparArrasto}
             aoPassarPorCima={setAlvo}
-            aoSoltar={(indiceVisual) => {
-              if (arrasto) aplicarMovimento(arrasto, coluna.id, indiceVisual);
-              setArrasto(null);
-              setAlvo(null);
+            aoSoltar={(visual) => {
+              if (arrasto?.tipo === 'lead') moverLead(arrasto, coluna.id, visual);
+              if (arrasto?.tipo === 'conversa') criarDeConversa(arrasto.conversa, coluna.id, visual);
+              limparArrasto();
             }}
             aoEscolherEtapa={(cartao, indiceNaOrigem, destinoId) => {
               const destino = colunas.find((item) => item.id === destinoId);
               if (!destino) return;
-              aplicarMovimento(
-                { vinculoId: cartao.vinculo_id, colunaId: coluna.id, indice: indiceNaOrigem },
+              moverLead(
+                { tipo: 'lead', vinculoId: cartao.vinculo_id, colunaId: coluna.id, indice: indiceNaOrigem },
                 destinoId,
                 destino.cartoes.length,
               );
@@ -152,15 +235,162 @@ export function QuadroKanban({ colunasIniciais, mover }: Props) {
           />
         ))}
       </div>
+
+      {confirmacao && (
+        <FormConfirmarTelefone
+          confirmacao={confirmacao}
+          pendente={pendente}
+          aoCancelar={() => setConfirmacao(null)}
+          aoConfirmar={(nome, telefone) => {
+            const pedido = confirmacao;
+            setConfirmacao(null);
+            executarCriacao(pedido.conversa, pedido.stageId, pedido.indice, { nome, telefone });
+          }}
+        />
+      )}
     </div>
   );
 }
+
+// ------------------------------------------------------------------- INBOX
+
+function ColunaInbox({
+  conversas,
+  arrastando,
+  aoIniciarArrasto,
+  aoTerminarArrasto,
+}: {
+  conversas: CartaoConversa[];
+  arrastando: string | null;
+  aoIniciarArrasto: (conversa: CartaoConversa) => void;
+  aoTerminarArrasto: () => void;
+}) {
+  const novas = conversas.filter((conversa) => conversa.situacao === 'nova').length;
+
+  return (
+    <section className="flex max-h-[calc(100vh-14rem)] w-72 shrink-0 flex-col rounded-xl border border-dashed border-black/20 bg-black/2 dark:border-white/25 dark:bg-white/2">
+      <header className="shrink-0 border-b border-black/10 px-3 py-3 dark:border-white/15">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-neutral-400" aria-hidden />
+          <h2 className="truncate text-sm font-semibold">Inbox do WhatsApp</h2>
+          <span className="ml-auto rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:bg-white/10 dark:text-neutral-400">
+            {novas}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-neutral-500">
+          Conversas recentes. Arraste para uma etapa para virar lead.
+        </p>
+      </header>
+
+      <div className="flex min-h-32 flex-1 flex-col gap-2 overflow-y-auto p-3">
+        {conversas.length === 0 ? (
+          <div className="px-1 py-6 text-center text-xs text-neutral-500">
+            <p>Nenhuma conversa capturada ainda.</p>
+            <p className="mt-2">
+              Abra o WhatsApp Web com a extensão e use <strong>Atualizar conversas</strong> no
+              painel.
+            </p>
+          </div>
+        ) : (
+          conversas.map((conversa) => (
+            <CartaoDaConversa
+              key={conversa.id}
+              conversa={conversa}
+              arrastando={arrastando === conversa.id}
+              aoIniciarArrasto={() => aoIniciarArrasto(conversa)}
+              aoTerminarArrasto={aoTerminarArrasto}
+            />
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CartaoDaConversa({
+  conversa,
+  arrastando,
+  aoIniciarArrasto,
+  aoTerminarArrasto,
+}: {
+  conversa: CartaoConversa;
+  arrastando: boolean;
+  aoIniciarArrasto: () => void;
+  aoTerminarArrasto: () => void;
+}) {
+  const podeArrastar = conversa.situacao === 'nova';
+
+  return (
+    <article
+      draggable={podeArrastar}
+      onDragStart={(evento) => {
+        if (!podeArrastar) {
+          evento.preventDefault();
+          return;
+        }
+        evento.dataTransfer.setData('text/plain', conversa.id);
+        evento.dataTransfer.effectAllowed = 'move';
+        aoIniciarArrasto();
+      }}
+      onDragEnd={aoTerminarArrasto}
+      className={`rounded-lg border border-black/10 bg-white p-3 shadow-sm transition dark:border-white/15 dark:bg-neutral-900 ${
+        podeArrastar ? 'cursor-grab active:cursor-grabbing' : 'opacity-75'
+      } ${arrastando ? 'opacity-40' : ''}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="truncate text-sm font-semibold">{conversa.titulo}</p>
+        {conversa.eh_grupo && (
+          <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-neutral-600 dark:bg-white/10 dark:text-neutral-400">
+            Grupo
+          </span>
+        )}
+      </div>
+
+      <p className="mt-1 truncate text-xs text-neutral-600 dark:text-neutral-400">
+        {conversa.telefone ? (
+          formatarTelefone(conversa.telefone)
+        ) : (
+          <span className="text-amber-700 dark:text-amber-500">
+            Telefone não lido — vai pedir ao soltar
+          </span>
+        )}
+      </p>
+
+      {conversa.situacao === 'ja_e_lead' && (
+        <p className="mt-2 text-xs">
+          <span className="font-medium text-emerald-700 dark:text-emerald-400">Já é lead</span>
+          {conversa.lead_id && (
+            <>
+              {' · '}
+              <Link
+                href={`/crm/${conversa.lead_id}`}
+                className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                draggable={false}
+              >
+                abrir ficha
+              </Link>
+            </>
+          )}
+        </p>
+      )}
+
+      {conversa.situacao === 'outra_carteira' && (
+        <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
+          Já é lead de outro vendedor. Fale com o gestor antes de cadastrar de novo.
+        </p>
+      )}
+    </article>
+  );
+}
+
+// ------------------------------------------------------------------ ETAPAS
 
 function Coluna({
   coluna,
   colunas,
   arrasto,
   alvo,
+  provisorios,
   aoIniciarArrasto,
   aoTerminarArrasto,
   aoPassarPorCima,
@@ -171,6 +401,7 @@ function Coluna({
   colunas: ColunaKanban[];
   arrasto: Arrasto | null;
   alvo: Alvo | null;
+  provisorios: Provisorio[];
   aoIniciarArrasto: (arrasto: Arrasto) => void;
   aoTerminarArrasto: () => void;
   aoPassarPorCima: (alvo: Alvo) => void;
@@ -196,7 +427,10 @@ function Coluna({
         // válido e o "drop" nunca chega.
         evento.preventDefault();
         evento.dataTransfer.dropEffect = 'move';
-        aoPassarPorCima({ colunaId: coluna.id, indice: calcularIndice(lista.current, evento.clientY) });
+        aoPassarPorCima({
+          colunaId: coluna.id,
+          indice: calcularIndice(lista.current, evento.clientY),
+        });
       }}
       onDrop={(evento) => {
         evento.preventDefault();
@@ -219,8 +453,7 @@ function Coluna({
       </header>
 
       {/* A coluna rola por dentro. Sem isto, uma etapa com muitos cartões
-          estica a página inteira e o cabeçalho das outras colunas some da
-          vista — que é a sensação de "conteúdo cortado". */}
+          estica a página inteira e o cabeçalho das outras colunas some. */}
       <div ref={lista} className="flex min-h-32 flex-1 flex-col gap-2 overflow-y-auto p-3">
         {coluna.cartoes.map((cartao, indice) => (
           <div key={cartao.vinculo_id}>
@@ -229,9 +462,10 @@ function Coluna({
               cartao={cartao}
               colunas={colunas}
               colunaId={coluna.id}
-              arrastando={arrasto?.vinculoId === cartao.vinculo_id}
+              arrastando={arrasto?.tipo === 'lead' && arrasto.vinculoId === cartao.vinculo_id}
               aoIniciarArrasto={() =>
                 aoIniciarArrasto({
+                  tipo: 'lead',
                   vinculoId: cartao.vinculo_id,
                   colunaId: coluna.id,
                   indice,
@@ -245,7 +479,17 @@ function Coluna({
 
         {recebendo && alvo?.indice === total && <Marcador />}
 
-        {total === 0 && !recebendo && (
+        {provisorios.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-lg border border-dashed border-emerald-500/60 bg-emerald-500/5 p-3 text-sm"
+          >
+            <p className="truncate font-semibold">{item.nome}</p>
+            <p className="mt-1 text-xs text-neutral-500">Criando lead…</p>
+          </div>
+        ))}
+
+        {total === 0 && provisorios.length === 0 && !recebendo && (
           <p className="px-1 py-6 text-center text-xs text-neutral-500">
             Nenhum lead nesta etapa.
           </p>
@@ -319,11 +563,7 @@ function Cartao({
             <li
               key={tag.id}
               className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-              style={
-                tag.cor
-                  ? { backgroundColor: `${tag.cor}22`, color: tag.cor }
-                  : undefined
-              }
+              style={tag.cor ? { backgroundColor: `${tag.cor}22`, color: tag.cor } : undefined}
             >
               <span className={tag.cor ? '' : 'text-neutral-600 dark:text-neutral-400'}>
                 {tag.nome}
@@ -349,5 +589,91 @@ function Cartao({
         </select>
       </label>
     </article>
+  );
+}
+
+/**
+ * Só aparece quando a extensão NÃO conseguiu ler o telefone da conversa.
+ *
+ * Com telefone lido, o arrasto cria direto — o formulário existiria só para
+ * atrapalhar. Sem telefone, ele é a diferença entre um lead útil e um cadastro
+ * que ninguém consegue contatar.
+ */
+function FormConfirmarTelefone({
+  confirmacao,
+  pendente,
+  aoCancelar,
+  aoConfirmar,
+}: {
+  confirmacao: Confirmacao;
+  pendente: boolean;
+  aoCancelar: () => void;
+  aoConfirmar: (nome: string, telefone: string | null) => void;
+}) {
+  const [nome, setNome] = useState(confirmacao.conversa.titulo);
+  const [telefone, setTelefone] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <form
+        className="w-full max-w-md rounded-xl border border-black/10 bg-white p-6 shadow-xl dark:border-white/15 dark:bg-neutral-900"
+        onSubmit={(evento) => {
+          evento.preventDefault();
+          if (nome.trim().length < 2) return;
+          aoConfirmar(nome.trim(), telefone.trim() || null);
+        }}
+      >
+        <h2 className="text-base font-semibold">Confirme o telefone</h2>
+        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          Não foi possível ler o número desta conversa no WhatsApp. Informe se souber — pode ficar
+          em branco.
+        </p>
+
+        <div className="mt-4">
+          <label className={ROTULO} htmlFor="conversa-nome">
+            Nome
+          </label>
+          <input
+            id="conversa-nome"
+            className={CAMPO}
+            value={nome}
+            onChange={(evento) => setNome(evento.target.value)}
+            minLength={2}
+            maxLength={200}
+            required
+            disabled={pendente}
+          />
+        </div>
+
+        <div className="mt-4">
+          <label className={ROTULO} htmlFor="conversa-telefone">
+            Telefone (opcional)
+          </label>
+          <input
+            id="conversa-telefone"
+            className={CAMPO}
+            type="tel"
+            value={telefone}
+            onChange={(evento) => setTelefone(evento.target.value)}
+            placeholder="(11) 98765-4321"
+            disabled={pendente}
+            autoFocus
+          />
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={pendente || nome.trim().length < 2}
+            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          >
+            Criar lead
+          </button>
+          <button type="button" className={BOTAO_MENOR} onClick={aoCancelar} disabled={pendente}>
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

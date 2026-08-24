@@ -231,3 +231,46 @@ export const COR_PADRAO_TIPO: Record<TipoEtapa, string> = {
   ganho: '#10b981',
   perdido: '#ef4444',
 };
+
+// ---------------------------------------------------------------- INBOX
+
+/** Resposta de `situacao_por_contato()` (migration 0003). */
+export type SituacaoContato = 'nenhum' | 'sua_carteira' | 'outra_carteira';
+
+/**
+ * Um cartão da coluna Inbox — uma conversa que ainda NÃO é lead.
+ *
+ * `situacao` resume o que o vendedor precisa saber antes de arrastar:
+ *   'nova'           — pode virar lead
+ *   'ja_e_lead'      — já existe e ele consegue ver (tem link para a ficha)
+ *   'outra_carteira' — já existe, mas é de outro vendedor. Arrastar criaria
+ *                      um duplicado silencioso, então o cartão não arrasta.
+ *
+ * `identificador_confiavel` diz se a conversa foi identificada pelo JID do
+ * WhatsApp ou por uma chave derivada do título, que é mais fraca.
+ */
+export type CartaoConversa = {
+  id: string;
+  titulo: string;
+  telefone: string | null;
+  eh_grupo: boolean;
+  identificador_confiavel: boolean;
+  situacao: 'nova' | 'ja_e_lead' | 'outra_carteira';
+  lead_id: string | null;
+  lead_nome: string | null;
+};
+
+/**
+ * Pedido de criação de lead a partir de uma conversa da Inbox.
+ *
+ * `nome` e `telefone` só vêm preenchidos quando o vendedor confirmou pelo
+ * formulário curto — o que acontece apenas quando a extensão NÃO conseguiu ler
+ * o telefone da conversa. Com telefone lido, o arrasto cria direto.
+ */
+export type PedidoCriarDaConversa = {
+  conversa_id: string;
+  stage_id: string;
+  indice: number;
+  nome?: string;
+  telefone?: string | null;
+};
