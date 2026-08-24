@@ -3,10 +3,20 @@ import Link from 'next/link';
 import { AVISO, CARTAO } from '@/components/ui';
 import { QuadroKanban } from '@/components/crm/QuadroKanban';
 import { SeletorFunil } from '@/components/crm/SeletorFunil';
+import { FiltrosLeads } from '@/components/crm/FiltrosLeads';
 import { moverCartaoAction } from '@/lib/crm/acoes';
 import { criarLeadDaConversa } from '@/lib/crm/acoes-inbox';
 import { listarInbox } from '@/lib/crm/inbox';
-import { LIMITE_QUADRO, carregarQuadro, listarFunis, organizacaoAtual } from '@/lib/crm/dados';
+import {
+  LIMITE_QUADRO,
+  carregarQuadro,
+  listarFunis,
+  listarMembros,
+  organizacaoAtual,
+  temFiltro,
+  type FiltrosLead,
+} from '@/lib/crm/dados';
+import { listarTags } from '@/lib/crm/tags';
 import { formatarMoeda } from '@/lib/crm/formato';
 import type { CartaoConversa, ColunaKanban } from '@/lib/crm/tipos';
 
@@ -25,16 +35,29 @@ export default async function PaginaKanban({
 }: {
   searchParams: Promise<{ [chave: string]: string | string[] | undefined }>;
 }) {
-  const filtros = await searchParams;
-  const funilPedido = typeof filtros.funil === 'string' ? filtros.funil : null;
+  const parametros = await searchParams;
+  const funilPedido = typeof parametros.funil === 'string' ? parametros.funil : null;
+
+  const texto = (chave: string) =>
+    typeof parametros[chave] === 'string' ? (parametros[chave] as string) : undefined;
+
+  // A etapa não entra: no quadro, as etapas SÃO as colunas.
+  const filtros: FiltrosLead = {
+    responsavel: texto('responsavel'),
+    origem: texto('origem'),
+    tag: texto('tag'),
+    busca: texto('busca'),
+  };
 
   const organizacao = await organizacaoAtual();
 
-  // Os funis e a Inbox não dependem um do outro nem do quadro: pedir em
-  // sequência somava três idas ao banco que cabem em uma só janela de tempo.
-  const [funis, inbox] = await Promise.all([
+  // Nada aqui depende do quadro: pedir em sequência somava idas ao banco que
+  // cabem na mesma janela de tempo.
+  const [funis, inbox, membros, tags] = await Promise.all([
     listarFunis(organizacao.organization_id),
     listarInbox(organizacao.organization_id),
+    listarMembros(organizacao.organization_id),
+    listarTags(organizacao.organization_id),
   ]);
 
   if (funis.length === 0) {
@@ -48,7 +71,7 @@ export default async function PaginaKanban({
 
   // Funil pedido pela URL, se for mesmo desta organização; senão, o padrão.
   const funilId = funis.find((funil) => funil.id === funilPedido)?.id ?? funis[0].id;
-  const quadro = await carregarQuadro(organizacao.organization_id, funilId);
+  const quadro = await carregarQuadro(organizacao.organization_id, funilId, filtros);
 
   if (!quadro) {
     return (
@@ -115,10 +138,12 @@ export default async function PaginaKanban({
         </p>
       )}
 
+      <FiltrosLeads membros={membros} tags={tags} total={quadro.total_cartoes} />
+
       {/* A Inbox é a primeira coluna de TODO quadro, inclusive de um funil
           recém-criado: por isso o quadro não é mais considerado "vazio" só
           porque nenhum lead entrou nele ainda. */}
-      {quadro.total_cartoes === 0 && inbox.length === 0 ? (
+      {quadro.total_cartoes === 0 && inbox.length === 0 && !temFiltro(filtros) ? (
         <div className={CARTAO}>
           <h2 className="text-sm font-semibold">Nenhum lead neste funil ainda</h2>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -160,6 +185,7 @@ export default async function PaginaKanban({
               inboxInicial={inbox}
               mover={moverCartaoAction}
               criarDaConversa={criarLeadDaConversa}
+              tagsDisponiveis={tags}
             />
           </div>
         </>

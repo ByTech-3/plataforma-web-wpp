@@ -7,7 +7,7 @@ const ITENS = [
   { href: '/dashboard', rotulo: 'Painel' },
   { href: '/crm', rotulo: 'CRM' },
   { href: '/kanban', rotulo: 'Kanban' },
-  { href: '/funis', rotulo: 'Funis' },
+  { href: '/configuracoes', rotulo: 'Configurações' },
 ];
 
 export function NavPrincipal() {

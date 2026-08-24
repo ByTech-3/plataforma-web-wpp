@@ -223,10 +223,90 @@ async function carregarEtapasPorLead(
 }
 
 /**
- * Teto da listagem. Busca e paginação entram junto com o Kanban; até lá a tela
- * avisa quando o teto foi atingido, em vez de cortar em silêncio.
+ * Teto da listagem. A tela avisa quando ele é atingido, em vez de cortar em
+ * silêncio — e os filtros existem justamente para caber abaixo dele.
  */
 export const LIMITE_LISTAGEM = 200;
+
+export type FiltrosLead = {
+  /** Id do responsável, ou `'sem'` para os que não têm dono. */
+  responsavel?: string;
+  origem?: string;
+  tag?: string;
+  etapa?: string;
+  busca?: string;
+};
+
+/** Há algum filtro além do "mostrar arquivados"? */
+export function temFiltro(filtros: FiltrosLead): boolean {
+  return Boolean(
+    filtros.responsavel || filtros.origem || filtros.tag || filtros.etapa || filtros.busca,
+  );
+}
+
+/**
+ * Ids dos leads que satisfazem os filtros de TAG e ETAPA.
+ *
+ * Devolve `null` quando nenhum dos dois foi pedido — o que é diferente de
+ * devolver lista vazia, que significa "filtrou e não sobrou ninguém".
+ */
+async function idsFiltradosPorVinculo(
+  organizationId: string,
+  filtros: FiltrosLead,
+): Promise<string[] | null> {
+  if (!filtros.tag && !filtros.etapa) return null;
+
+  const supabase = await criarClienteServidor();
+  const listas: string[][] = [];
+
+  if (filtros.tag) {
+    const { data } = await supabase
+      .from('lead_tags')
+      .select('lead_id')
+      .eq('organization_id', organizationId)
+      .eq('tag_id', filtros.tag);
+
+    listas.push(((data ?? []) as { lead_id: string }[]).map((linha) => linha.lead_id));
+  }
+
+  if (filtros.etapa) {
+    const { data } = await supabase
+      .from('lead_pipeline')
+      .select('lead_id')
+      .eq('organization_id', organizationId)
+      .eq('stage_id', filtros.etapa);
+
+    listas.push(((data ?? []) as { lead_id: string }[]).map((linha) => linha.lead_id));
+  }
+
+  // Filtros combinados são "E", não "OU": tag VIP na etapa Negociação são os
+  // leads que estão nos dois conjuntos.
+  return listas.reduce((acumulado, lista) =>
+    acumulado.filter((id) => lista.includes(id)),
+  );
+}
+
+/** Totais dos filtros de arquivamento, independentes dos demais filtros. */
+async function contarLeads(
+  organizationId: string,
+): Promise<{ totalAtivos: number; totalArquivados: number }> {
+  const supabase = await criarClienteServidor();
+
+  const [ativos, arquivados] = await Promise.all([
+    supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .eq('arquivado', false),
+    supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', organizationId)
+      .eq('arquivado', true),
+  ]);
+
+  return { totalAtivos: ativos.count ?? 0, totalArquivados: arquivados.count ?? 0 };
+}
 
 /**
  * Listagem principal. Arquivados ficam FORA por padrão: arquivar é descarte
@@ -234,9 +314,19 @@ export const LIMITE_LISTAGEM = 200;
  */
 export async function listarLeads(
   organizationId: string,
-  opcoes: { incluirArquivados?: boolean } = {},
+  opcoes: { incluirArquivados?: boolean; filtros?: FiltrosLead } = {},
 ): Promise<{ leads: LeadDaTela[]; totalAtivos: number; totalArquivados: number }> {
   const supabase = await criarClienteServidor();
+  const filtros = opcoes.filtros ?? {};
+
+  // Tag e etapa não são colunas de `leads`: viram uma lista de ids antes.
+  // Quando o filtro existe e não casa com nada, a lista sai vazia — e é isso
+  // mesmo, em vez de ignorar o filtro e mostrar tudo.
+  const idsPorVinculo = await idsFiltradosPorVinculo(organizationId, filtros);
+  if (idsPorVinculo?.length === 0) {
+    const totais = await contarLeads(organizationId);
+    return { leads: [], ...totais };
+  }
 
   let consulta = supabase
     .from('leads')
@@ -247,6 +337,25 @@ export async function listarLeads(
 
   if (!opcoes.incluirArquivados) {
     consulta = consulta.eq('arquivado', false);
+  }
+  if (filtros.responsavel === 'sem') {
+    consulta = consulta.is('responsavel_id', null);
+  } else if (filtros.responsavel) {
+    consulta = consulta.eq('responsavel_id', filtros.responsavel);
+  }
+  if (filtros.origem) {
+    consulta = consulta.eq('origem', filtros.origem);
+  }
+  if (idsPorVinculo) {
+    consulta = consulta.in('id', idsPorVinculo.slice(0, 300));
+  }
+  if (filtros.busca) {
+    // Nome OU telefone. O termo é escapado: vírgula e parêntese têm
+    // significado na sintaxe do `or` do PostgREST e quebrariam a consulta.
+    const termo = filtros.busca.replace(/[,()*%\\]/g, ' ').trim();
+    if (termo) {
+      consulta = consulta.or(`nome.ilike.%${termo}%,telefone.ilike.%${termo}%`);
+    }
   }
 
   // As contagens alimentam os rótulos do filtro e não dependem do teto acima.
@@ -540,6 +649,7 @@ function ordenarCartoes(cartoes: CartaoKanban[]): CartaoKanban[] {
 export async function carregarQuadro(
   organizationId: string,
   pipelineId: string,
+  filtros: FiltrosLead = {},
 ): Promise<Quadro | null> {
   const supabase = await criarClienteServidor();
 
@@ -607,7 +717,7 @@ export async function carregarQuadro(
     emLotes(leadIds).map((lote) =>
       supabase
         .from('leads')
-        .select('id, nome, telefone, valor, responsavel_id')
+        .select('id, nome, telefone, valor, responsavel_id, origem')
         .eq('organization_id', organizationId)
         .eq('arquivado', false)
         .in('id', lote),
@@ -629,6 +739,7 @@ export async function carregarQuadro(
             telefone: string | null;
             valor: unknown;
             responsavel_id: string | null;
+            origem: string;
           }[],
       )
       .map((lead) => [lead.id, lead]),
@@ -639,10 +750,32 @@ export async function carregarQuadro(
 
   const membrosPorId = new Map(membros.map((membro) => [membro.user_id, membro]));
 
+  const termoBusca = (filtros.busca ?? '').trim().toLowerCase();
+  const digitosBusca = termoBusca.replace(/\D/g, '');
+
   const cartoesPorEtapa = new Map<string, CartaoKanban[]>();
   for (const vinculo of vinculos) {
     const lead = leads.get(vinculo.lead_id);
     if (!lead) continue;
+
+    // Os filtros do quadro são aplicados aqui, sobre os cartões já carregados:
+    // são poucos (teto de LIMITE_QUADRO) e assim uma troca de filtro não custa
+    // consulta nova ao banco.
+    if (filtros.responsavel === 'sem' && lead.responsavel_id) continue;
+    if (filtros.responsavel && filtros.responsavel !== 'sem' && lead.responsavel_id !== filtros.responsavel) {
+      continue;
+    }
+    if (filtros.origem && lead.origem !== filtros.origem) continue;
+    if (filtros.tag && !(tagsPorLead.get(lead.id) ?? []).some((tag) => tag.id === filtros.tag)) {
+      continue;
+    }
+    if (termoBusca) {
+      const nome = lead.nome.toLowerCase();
+      const telefone = (lead.telefone ?? '').replace(/\D/g, '');
+      const casa =
+        nome.includes(termoBusca) || (digitosBusca.length >= 3 && telefone.includes(digitosBusca));
+      if (!casa) continue;
+    }
 
     const cartao: CartaoKanban = {
       vinculo_id: vinculo.id,

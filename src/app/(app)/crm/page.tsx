@@ -2,7 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AVISO, CARTAO } from '@/components/ui';
 import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
-import { LIMITE_LISTAGEM, listarLeads, organizacaoAtual } from '@/lib/crm/dados';
+import { FiltrosLeads } from '@/components/crm/FiltrosLeads';
+import {
+  LIMITE_LISTAGEM,
+  listarLeads,
+  listarMembros,
+  organizacaoAtual,
+  temFiltro,
+  type FiltrosLead,
+} from '@/lib/crm/dados';
+import { listarEtapasParaFiltro, listarTags } from '@/lib/crm/tags';
 import { formatarData, formatarDataHora, formatarMoeda, ouTraco } from '@/lib/crm/formato';
 import type { LeadDaTela } from '@/lib/crm/tipos';
 
@@ -23,15 +32,31 @@ export default async function PaginaCrm({
 }: {
   searchParams: Promise<{ [chave: string]: string | string[] | undefined }>;
 }) {
-  const filtros = await searchParams;
-  const mostrarArquivados = filtros.arquivados === '1';
+  const parametros = await searchParams;
+  const mostrarArquivados = parametros.arquivados === '1';
+
+  const texto = (chave: string) =>
+    typeof parametros[chave] === 'string' ? (parametros[chave] as string) : undefined;
+
+  const filtros: FiltrosLead = {
+    responsavel: texto('responsavel'),
+    origem: texto('origem'),
+    tag: texto('tag'),
+    etapa: texto('etapa'),
+    busca: texto('busca'),
+  };
 
   const organizacao = await organizacaoAtual();
-  const { leads, totalAtivos, totalArquivados } = await listarLeads(organizacao.organization_id, {
-    incluirArquivados: mostrarArquivados,
-  });
+
+  const [{ leads, totalAtivos, totalArquivados }, membros, tags, etapas] = await Promise.all([
+    listarLeads(organizacao.organization_id, { incluirArquivados: mostrarArquivados, filtros }),
+    listarMembros(organizacao.organization_id),
+    listarTags(organizacao.organization_id),
+    listarEtapasParaFiltro(organizacao.organization_id),
+  ]);
 
   const ehGestor = organizacao.papel === 'admin' || organizacao.papel === 'gestor';
+  const filtrando = temFiltro(filtros);
 
   return (
     <div className="space-y-6">
@@ -70,6 +95,8 @@ export default async function PaginaCrm({
         </FiltroLink>
       </nav>
 
+      <FiltrosLeads membros={membros} tags={tags} etapas={etapas} total={leads.length} />
+
       {leads.length >= LIMITE_LISTAGEM && (
         <p className={AVISO}>
           Mostrando os {LIMITE_LISTAGEM} leads mais recentes. Os demais existem e continuam no
@@ -79,18 +106,24 @@ export default async function PaginaCrm({
 
       {leads.length === 0 ? (
         <div className={CARTAO}>
-          <h2 className="text-sm font-semibold">Nenhum lead por aqui</h2>
+          <h2 className="text-sm font-semibold">
+            {filtrando ? 'Nenhum lead com esses filtros' : 'Nenhum lead por aqui'}
+          </h2>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-            {mostrarArquivados
-              ? 'Nem ativos, nem arquivados.'
-              : 'Cadastre o primeiro lead — ele já entra no funil padrão, na primeira etapa.'}
+            {filtrando
+              ? 'Ajuste ou limpe os filtros acima para ver mais leads.'
+              : mostrarArquivados
+                ? 'Nem ativos, nem arquivados.'
+                : 'Cadastre o primeiro lead — ele já entra no funil padrão, na primeira etapa.'}
           </p>
-          <Link
-            href="/crm/novo"
-            className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
-          >
-            Cadastrar lead
-          </Link>
+          {!filtrando && (
+            <Link
+              href="/crm/novo"
+              className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+            >
+              Cadastrar lead
+            </Link>
+          )}
         </div>
       ) : (
         <>

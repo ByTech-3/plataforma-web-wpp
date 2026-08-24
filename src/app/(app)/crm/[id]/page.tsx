@@ -5,6 +5,7 @@ import { AVISO, CARTAO } from '@/components/ui';
 import { AcaoLead } from '@/components/crm/AcaoLead';
 import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
 import { LinhaDoTempo } from '@/components/crm/LinhaDoTempo';
+import { TagsDoLead } from '@/components/crm/TagsDoLead';
 import { alternarArquivamentoAction, entrarNoFunilPadraoAction } from '@/lib/crm/acoes';
 import {
   carregarLead,
@@ -12,6 +13,7 @@ import {
   listarMembros,
   organizacaoAtual,
 } from '@/lib/crm/dados';
+import { listarTags, tagsDoLead } from '@/lib/crm/tags';
 import { formatarData, formatarDataHora, formatarMoeda, ouTraco } from '@/lib/crm/formato';
 
 export const metadata: Metadata = { title: 'Lead · ByTech3' };
@@ -34,9 +36,11 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
   // seria contar ao vendedor que o lead existe.
   if (!lead) notFound();
 
-  const [historico, membros] = await Promise.all([
+  const [historico, membros, tagsAplicadas, tagsDaOrganizacao] = await Promise.all([
     listarHistorico(lead.id),
     listarMembros(organizacao.organization_id),
+    tagsDoLead(lead.id),
+    listarTags(organizacao.organization_id),
   ]);
 
   return (
@@ -111,6 +115,14 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
           </div>
         </div>
       )}
+
+      <section className={CARTAO}>
+        <h2 className="text-sm font-semibold">Etiquetas</h2>
+        <p className="mt-1 mb-3 text-xs text-neutral-500">
+          Cada etiqueta aplicada ou removida entra na linha do tempo, gravada pelo banco.
+        </p>
+        <TagsDoLead leadId={lead.id} aplicadas={tagsAplicadas} disponiveis={tagsDaOrganizacao} />
+      </section>
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Ficha</h2>

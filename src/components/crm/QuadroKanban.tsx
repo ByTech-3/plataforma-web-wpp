@@ -24,6 +24,7 @@ import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { CAMPO, ERRO, ROTULO } from '@/components/ui';
 import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
+import { TagsDoLead } from '@/components/crm/TagsDoLead';
 import { formatarMoeda, formatarTelefone } from '@/lib/crm/formato';
 import {
   COR_PADRAO_TIPO,
@@ -33,6 +34,7 @@ import {
   type EstadoAcao,
   type PedidoCriarDaConversa,
   type PedidoMover,
+  type TagLead,
 } from '@/lib/crm/tipos';
 
 type Props = {
@@ -42,6 +44,7 @@ type Props = {
   criarDaConversa: (
     pedido: PedidoCriarDaConversa,
   ) => Promise<EstadoAcao & { lead_id?: string }>;
+  tagsDisponiveis: TagLead[];
 };
 
 type Arrasto =
@@ -76,7 +79,13 @@ function calcularIndice(lista: HTMLElement | null, clientY: number): number {
   return cartoes.length;
 }
 
-export function QuadroKanban({ colunasIniciais, inboxInicial, mover, criarDaConversa }: Props) {
+export function QuadroKanban({
+  colunasIniciais,
+  inboxInicial,
+  mover,
+  criarDaConversa,
+  tagsDisponiveis,
+}: Props) {
   const [colunas, setColunas] = useState(colunasIniciais);
   const [inbox, setInbox] = useState(inboxInicial);
   const [arrasto, setArrasto] = useState<Arrasto | null>(null);
@@ -213,6 +222,7 @@ export function QuadroKanban({ colunasIniciais, inboxInicial, mover, criarDaConv
             key={coluna.id}
             coluna={coluna}
             colunas={colunas}
+            tagsDisponiveis={tagsDisponiveis}
             arrasto={arrasto}
             alvo={alvo}
             provisorios={provisorios.filter((item) => item.colunaId === coluna.id)}
@@ -389,6 +399,7 @@ function CartaoDaConversa({
 function Coluna({
   coluna,
   colunas,
+  tagsDisponiveis,
   arrasto,
   alvo,
   provisorios,
@@ -400,6 +411,7 @@ function Coluna({
 }: {
   coluna: ColunaKanban;
   colunas: ColunaKanban[];
+  tagsDisponiveis: TagLead[];
   arrasto: Arrasto | null;
   alvo: Alvo | null;
   provisorios: Provisorio[];
@@ -462,6 +474,7 @@ function Coluna({
             <Cartao
               cartao={cartao}
               colunas={colunas}
+              tagsDisponiveis={tagsDisponiveis}
               colunaId={coluna.id}
               arrastando={arrasto?.tipo === 'lead' && arrasto.vinculoId === cartao.vinculo_id}
               aoIniciarArrasto={() =>
@@ -507,6 +520,7 @@ function Marcador() {
 function Cartao({
   cartao,
   colunas,
+  tagsDisponiveis,
   colunaId,
   arrastando,
   aoIniciarArrasto,
@@ -515,6 +529,7 @@ function Cartao({
 }: {
   cartao: CartaoKanban;
   colunas: ColunaKanban[];
+  tagsDisponiveis: TagLead[];
   colunaId: string;
   arrastando: boolean;
   aoIniciarArrasto: () => void;
@@ -558,21 +573,16 @@ function Cartao({
         </span>
       </div>
 
-      {cartao.tags.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-1">
-          {cartao.tags.map((tag) => (
-            <li
-              key={tag.id}
-              className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-              style={tag.cor ? { backgroundColor: `${tag.cor}22`, color: tag.cor } : undefined}
-            >
-              <span className={tag.cor ? '' : 'text-neutral-600 dark:text-neutral-400'}>
-                {tag.nome}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Etiquetas editáveis no próprio cartão: marcar um lead no meio do
+          quadro é o momento em que a etiqueta faz falta. */}
+      <div className="mt-2">
+        <TagsDoLead
+          leadId={cartao.lead_id}
+          aplicadas={cartao.tags}
+          disponiveis={tagsDisponiveis}
+          compacto
+        />
+      </div>
 
       {cartao.telefone && (
         <div className="mt-3">
