@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AVISO, CARTAO } from '@/components/ui';
+import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
 import { LIMITE_LISTAGEM, listarLeads, organizacaoAtual } from '@/lib/crm/dados';
 import { formatarData, formatarDataHora, formatarMoeda, ouTraco } from '@/lib/crm/formato';
 import type { LeadDaTela } from '@/lib/crm/tipos';
@@ -139,6 +140,7 @@ function TabelaLeads({ leads }: { leads: LeadDaTela[] }) {
             <th className="px-4 py-3 font-medium">Valor</th>
             <th className="px-4 py-3 font-medium">Etapa</th>
             <th className="px-4 py-3 font-medium">Criado em</th>
+            <th className="px-4 py-3 font-medium"><span className="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody>
@@ -176,6 +178,11 @@ function TabelaLeads({ leads }: { leads: LeadDaTela[] }) {
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-neutral-600 dark:text-neutral-400">
                 {formatarDataHora(lead.criado_em)}
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                {lead.telefone && (
+                  <EnviarMensagem leadId={lead.id} nome={lead.nome} variante="discreto" />
+                )}
               </td>
             </tr>
           ))}

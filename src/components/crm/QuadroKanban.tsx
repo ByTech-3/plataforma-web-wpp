@@ -23,6 +23,7 @@
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { CAMPO, ERRO, ROTULO } from '@/components/ui';
+import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
 import { formatarMoeda, formatarTelefone } from '@/lib/crm/formato';
 import {
   COR_PADRAO_TIPO,
@@ -571,6 +572,12 @@ function Cartao({
             </li>
           ))}
         </ul>
+      )}
+
+      {cartao.telefone && (
+        <div className="mt-3">
+          <EnviarMensagem leadId={cartao.lead_id} nome={cartao.nome} variante="discreto" />
+        </div>
       )}
 
       {/* Caminho sem arrastar: telas de toque e teclado. */}

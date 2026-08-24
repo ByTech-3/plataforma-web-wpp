@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AVISO, CARTAO } from '@/components/ui';
 import { AcaoLead } from '@/components/crm/AcaoLead';
+import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
 import { LinhaDoTempo } from '@/components/crm/LinhaDoTempo';
 import { alternarArquivamentoAction, entrarNoFunilPadraoAction } from '@/lib/crm/acoes';
 import {
@@ -68,6 +69,8 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="flex flex-wrap items-start gap-2">
+          <EnviarMensagem leadId={lead.id} nome={lead.nome} />
+
           <Link
             href={`/crm/${lead.id}/editar`}
             className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
@@ -140,7 +143,7 @@ function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode 
   return (
     <div>
       <dt className="text-xs font-medium uppercase tracking-widest text-neutral-500">{rotulo}</dt>
-      <dd className="mt-1 text-sm break-words">{children}</dd>
+      <dd className="mt-1 text-sm wrap-break-word">{children}</dd>
     </div>
   );
 }
