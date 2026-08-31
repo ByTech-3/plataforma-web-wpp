@@ -46,6 +46,20 @@ export default async function PaginaConfiguracoes() {
           href="/configuracoes/tags"
           acao="Gerenciar etiquetas"
         />
+        <Atalho
+          titulo="Fluxos de atendimento"
+          descricao="Quando isto acontecer, faça aquilo: responder o lead novo, etiquetar, mover no funil. As mensagens saem pelo n8n ou pela API oficial — nunca pela extensão."
+          href="/configuracoes/fluxos"
+          acao="Montar fluxos"
+          restrito={!ehGestor}
+        />
+        <Atalho
+          titulo="Webhooks e entregas"
+          descricao="Os destinos das chamadas automáticas e o registro do que foi entregue, do que falhou e por quê."
+          href="/configuracoes/webhooks"
+          acao="Ver webhooks"
+          restrito={!ehGestor}
+        />
       </section>
 
       <section className={CARTAO}>
