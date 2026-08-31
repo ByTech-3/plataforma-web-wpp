@@ -14,16 +14,26 @@ export default async function PaginaEditarLead({ params }: { params: Promise<{ i
   const { id } = await params;
 
   const supabase = await criarClienteServidor();
+
+  // `getSession()` e não `getUser()`: o `getUser()` vai à REDE conferir o token
+  // com o servidor de auth, e o `proxy.ts` já fez isso nesta mesma requisição.
+  // Era um salto de rede inteiro antes de qualquer consulta começar. O id daqui
+  // só preenche o campo "responsável" do formulário — quem autoriza a gravação
+  // é a RLS, com o JWT, não este valor.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) redirect('/login');
 
   const organizacao = await organizacaoAtual();
-  const lead = await carregarLead(organizacao.organization_id, id);
+
+  const [lead, membros] = await Promise.all([
+    carregarLead(organizacao.organization_id, id),
+    listarMembros(organizacao.organization_id),
+  ]);
+
   if (!lead) notFound();
 
-  const membros = await listarMembros(organizacao.organization_id);
   const ehGestor = organizacao.papel === 'admin' || organizacao.papel === 'gestor';
 
   return (
@@ -52,7 +62,7 @@ export default async function PaginaEditarLead({ params }: { params: Promise<{ i
         <FormLead
           acao={atualizarLeadAction}
           membros={membros}
-          usuarioId={user.id}
+          usuarioId={session.user.id}
           podeDistribuir={ehGestor}
           lead={lead}
           rotuloEnvio="Salvar alterações"

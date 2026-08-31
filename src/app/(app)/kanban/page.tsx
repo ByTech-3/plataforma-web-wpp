@@ -51,13 +51,22 @@ export default async function PaginaKanban({
 
   const organizacao = await organizacaoAtual();
 
-  // Nada aqui depende do quadro: pedir em sequência somava idas ao banco que
-  // cabem na mesma janela de tempo.
-  const [funis, inbox, membros, tags] = await Promise.all([
+  // O quadro dependia da lista de funis só para saber QUAL funil abrir — e por
+  // isso esperava uma ida inteira ao banco antes de começar. Quando a URL já
+  // diz o funil (que é o caso a partir da segunda visita, porque o seletor
+  // grava `?funil=`), o quadro pode ser pedido junto com o resto.
+  //
+  // O palpite é seguro: `carregarQuadro` devolve `null` para funil que não é
+  // desta organização, e a validação contra a lista continua acontecendo
+  // abaixo. Se o id for inválido, refazemos — no caminho raro.
+  const [funis, inbox, membros, tags, quadroAdiantado] = await Promise.all([
     listarFunis(organizacao.organization_id),
     listarInbox(organizacao.organization_id),
     listarMembros(organizacao.organization_id),
     listarTags(organizacao.organization_id),
+    funilPedido
+      ? carregarQuadro(organizacao.organization_id, funilPedido, filtros)
+      : Promise.resolve(null),
   ]);
 
   if (funis.length === 0) {
@@ -71,7 +80,12 @@ export default async function PaginaKanban({
 
   // Funil pedido pela URL, se for mesmo desta organização; senão, o padrão.
   const funilId = funis.find((funil) => funil.id === funilPedido)?.id ?? funis[0].id;
-  const quadro = await carregarQuadro(organizacao.organization_id, funilId, filtros);
+
+  // O adiantado só vale se era mesmo o funil certo. Senão, busca agora.
+  const quadro =
+    funilId === funilPedido && quadroAdiantado
+      ? quadroAdiantado
+      : await carregarQuadro(organizacao.organization_id, funilId, filtros);
 
   if (!quadro) {
     return (

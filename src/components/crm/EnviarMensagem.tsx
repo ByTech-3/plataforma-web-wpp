@@ -24,7 +24,33 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { autorizarEnvio, registrarEnvio } from '@/lib/crm/acoes-mensagem';
-import { SEM_EXTENSAO, perguntarExtensao, type MensagemLida } from '@/lib/crm/ponte-extensao';
+import {
+  SEM_EXTENSAO,
+  perguntarExtensao,
+  registrarRastro,
+  type MensagemLida,
+  type MotivoNaoAbriu,
+} from '@/lib/crm/ponte-extensao';
+
+/**
+ * Cada motivo vira uma frase que aponta para uma ação diferente.
+ *
+ * `nao-encontrada` é o caso em que a conversa EXISTE mas não deu para
+ * confirmar qual é. Antes disso virar mensagem própria, a extensão recarregava
+ * o WhatsApp inteiro tentando a sorte — o que interrompia o vendedor no meio
+ * do trabalho e nem sempre resolvia. Falhar aqui é a escolha deliberada.
+ */
+const FRASE_NAO_ABRIU: Record<MotivoNaoAbriu, string> = {
+  'sem-conversa-previa':
+    'Não existe conversa com este número no seu WhatsApp, e abri-la não funcionou. ' +
+    'O número pode não ter WhatsApp — confira o telefone na ficha do lead.',
+  'nao-encontrada':
+    'A conversa existe no seu WhatsApp, mas não consegui identificá-la com certeza. ' +
+    'Abra-a você mesmo na aba do WhatsApp Web e clique em atualizar aqui. ' +
+    '(Não recarreguei a página de propósito, para não interromper seu trabalho.)',
+  'sem-resposta':
+    'A aba do WhatsApp Web não respondeu. Verifique se ela ainda está aberta e conectada.',
+};
 
 type Props = {
   leadId: string;
@@ -103,10 +129,10 @@ function PainelEnvio({
       return;
     }
     if (leitura.estado === 'conversa-nao-abriu') {
+      registrarRastro('Não abri a conversa — o que foi tentado:', leitura.registro);
       setContexto({
         fase: 'erro',
-        mensagem:
-          'Não consegui abrir esta conversa no WhatsApp Web. O número pode não ter WhatsApp.',
+        mensagem: FRASE_NAO_ABRIU[leitura.motivo ?? 'nao-encontrada'],
       });
       return;
     }
@@ -115,6 +141,7 @@ function PainelEnvio({
       return;
     }
 
+    registrarRastro('Conversa aberta — o que foi tentado:', leitura.registro);
     setContexto({
       fase: 'pronto',
       mensagens: leitura.mensagens ?? [],
@@ -175,6 +202,10 @@ function PainelEnvio({
       return;
     }
     if (envio.estado !== 'ok') {
+      if (envio.estado === 'conversa-nao-abriu') {
+        registrarRastro('Não abri a conversa para enviar — o que foi tentado:', envio.registro);
+      }
+
       setEnviando(false);
       setResultado({
         tipo: 'erro',
@@ -183,7 +214,7 @@ function PainelEnvio({
             ? envio.mensagem
             : envio.estado === 'sem-aba'
               ? 'O WhatsApp Web não está aberto.'
-              : 'Não consegui abrir esta conversa no WhatsApp Web.',
+              : FRASE_NAO_ABRIU[envio.motivo ?? 'nao-encontrada'],
       });
       return;
     }

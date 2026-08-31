@@ -29,19 +29,26 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
   const { id } = await params;
 
   const organizacao = await organizacaoAtual();
-  const lead = await carregarLead(organizacao.organization_id, id);
+
+  // Tudo numa ida só. O histórico e as tags são do lead, mas dependem do `id`
+  // da URL — não do lead já carregado. Esperar o lead para só então pedir o
+  // resto somava uma ida ao banco que não precisava existir.
+  //
+  // Se o id for inválido, essas consultas voltam vazias e a RLS não deixa
+  // vazar nada: o custo do palpite é uma consulta sem resultado, no caminho
+  // raro; o ganho é uma ida a menos no caminho normal.
+  const [lead, historico, membros, tagsAplicadas, tagsDaOrganizacao] = await Promise.all([
+    carregarLead(organizacao.organization_id, id),
+    listarHistorico(id),
+    listarMembros(organizacao.organization_id),
+    tagsDoLead(id),
+    listarTags(organizacao.organization_id),
+  ]);
 
   // `null` aqui significa "não existe" OU "está fora da sua carteira". A RLS
   // não distingue os dois de propósito: responder "existe, mas não é seu" já
   // seria contar ao vendedor que o lead existe.
   if (!lead) notFound();
-
-  const [historico, membros, tagsAplicadas, tagsDaOrganizacao] = await Promise.all([
-    listarHistorico(lead.id),
-    listarMembros(organizacao.organization_id),
-    tagsDoLead(lead.id),
-    listarTags(organizacao.organization_id),
-  ]);
 
   return (
     <div className="space-y-6">

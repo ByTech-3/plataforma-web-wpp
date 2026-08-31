@@ -28,16 +28,37 @@ export type PedidoPonte =
   | { tipo: 'whatsapp/ler'; telefone: string }
   | { tipo: 'whatsapp/enviar'; telefone: string; texto: string };
 
+/**
+ * Por que a conversa não abriu. Espelha o tipo da extensão — os dois projetos
+ * são separados, então o contrato é repetido de propósito, não importado.
+ */
+export type MotivoNaoAbriu = 'sem-conversa-previa' | 'nao-encontrada' | 'sem-resposta';
+
 export type RespostaPonte =
   | { estado: 'sem-aba' }
-  | { estado: 'conversa-nao-abriu' }
+  | { estado: 'conversa-nao-abriu'; motivo?: MotivoNaoAbriu; registro?: string[] }
   | { estado: 'erro'; mensagem: string }
   | {
       estado: 'ok';
       mensagens?: MensagemLida[];
       navegou?: boolean;
       recarregou?: boolean;
+      registro?: string[];
     };
+
+/**
+ * Imprime no console o rastro de como a extensão tentou abrir a conversa.
+ *
+ * Vai para o console e não para a tela porque é diagnóstico de quem dá
+ * suporte, não informação para o vendedor. Na tela fica só a frase que ele
+ * consegue agir em cima.
+ */
+export function registrarRastro(rotulo: string, registro?: string[]): void {
+  if (!registro || registro.length === 0) return;
+  console.groupCollapsed(`[ByTech3] ${rotulo}`);
+  for (const linha of registro) console.log(linha);
+  console.groupEnd();
+}
 
 /** Quando nem a ponte responde: a extensão não está instalada nesta janela. */
 export const SEM_EXTENSAO = 'sem-extensao' as const;

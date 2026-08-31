@@ -11,10 +11,15 @@ export const metadata: Metadata = { title: 'Novo lead · ByTech3' };
 
 export default async function PaginaNovoLead() {
   const supabase = await criarClienteServidor();
+
+  // `getSession()` lê o cookie sem ir à rede. O `getUser()` que estava aqui
+  // consultava o servidor de auth de novo, depois de o `proxy.ts` já ter feito
+  // exatamente isso nesta requisição — um salto de rede pago duas vezes. O id
+  // só preenche o campo "responsável"; a autorização é da RLS.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) redirect('/login');
 
   const organizacao = await organizacaoAtual();
   const [membros, funil] = await Promise.all([
@@ -55,7 +60,7 @@ export default async function PaginaNovoLead() {
         <FormLead
           acao={criarLeadAction}
           membros={membros}
-          usuarioId={user.id}
+          usuarioId={session.user.id}
           podeDistribuir={ehGestor}
           rotuloEnvio="Cadastrar lead"
           rotuloEnviando="Cadastrando…"
