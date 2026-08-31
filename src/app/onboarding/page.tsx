@@ -42,7 +42,7 @@ export default async function PaginaOnboarding() {
   return (
     <div className="flex min-h-full items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
-        <p className="text-center text-xs font-medium uppercase tracking-widest text-neutral-500">
+        <p className="text-center text-xs font-medium uppercase tracking-widest text-texto-3">
           ByTech3
         </p>
 
@@ -50,7 +50,7 @@ export default async function PaginaOnboarding() {
           <h1 className="text-xl font-semibold tracking-tight">
             Vamos criar sua organização
           </h1>
-          <p className="mt-1 mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-1 mb-6 text-sm text-texto-2">
             É o último passo do cadastro. O período de teste começa agora.
           </p>
 

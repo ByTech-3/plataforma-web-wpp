@@ -141,7 +141,7 @@ export function FiltrosLeads({ membros, tags, etapas, total }: Props) {
               setBusca('');
               router.replace(caminho, { scroll: false });
             }}
-            className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            className="rounded-padrao border border-linha-forte px-3 py-1.5 text-xs font-medium transition hover:bg-superficie-2"
           >
             Limpar filtros ({ativos})
           </button>
@@ -149,7 +149,7 @@ export function FiltrosLeads({ membros, tags, etapas, total }: Props) {
       </div>
 
       {ativos > 0 && (
-        <p className="text-xs text-neutral-500" aria-live="polite">
+        <p className="text-xs text-texto-3" aria-live="polite">
           {total} {total === 1 ? 'lead encontrado' : 'leads encontrados'} com os filtros atuais.
         </p>
       )}

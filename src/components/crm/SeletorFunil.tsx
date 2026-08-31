@@ -19,7 +19,7 @@ export function SeletorFunil({ funis, atual }: { funis: FunilResumo[]; atual: st
 
   return (
     <label className="flex items-center gap-2 text-sm">
-      <span className="text-neutral-600 dark:text-neutral-400">Funil</span>
+      <span className="text-texto-2">Funil</span>
       <select
         value={atual}
         disabled={pendente}
@@ -27,7 +27,7 @@ export function SeletorFunil({ funis, atual }: { funis: FunilResumo[]; atual: st
           const id = evento.target.value;
           iniciar(() => router.push(`/kanban?funil=${encodeURIComponent(id)}`));
         }}
-        className="rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm disabled:opacity-60 dark:border-white/20"
+        className="rounded-padrao border border-linha-forte bg-transparent px-3 py-1.5 text-sm disabled:opacity-60"
       >
         {funis.map((funil) => (
           <option key={funil.id} value={funil.id}>

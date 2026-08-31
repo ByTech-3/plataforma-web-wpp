@@ -23,11 +23,11 @@ type Props = {
 
 const ESTILOS = {
   neutro:
-    'rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition ' +
-    'hover:bg-black/5 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10',
+    'rounded-padrao border border-linha-forte px-4 py-2 text-sm font-medium transition ' +
+    'hover:bg-superficie-2 disabled:opacity-60',
   destaque:
-    'rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition ' +
-    'hover:bg-emerald-700 disabled:opacity-60',
+    'rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition ' +
+    'hover:bg-acao-forte disabled:opacity-60',
 };
 
 export function AcaoLead({

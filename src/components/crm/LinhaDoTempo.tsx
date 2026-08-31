@@ -28,12 +28,12 @@ const ROTULO_EVENTO: Record<string, string> = {
 };
 
 const COR_EVENTO: Record<string, string> = {
-  'lead.created': 'bg-emerald-500',
+  'lead.created': 'bg-acao',
   'lead.stage_changed': 'bg-sky-500',
   'lead.pipeline_added': 'bg-sky-500',
-  'lead.pipeline_removed': 'bg-neutral-400',
-  'lead.archived': 'bg-amber-500',
-  'lead.restored': 'bg-emerald-500',
+  'lead.pipeline_removed': 'bg-texto-3',
+  'lead.archived': 'bg-alerta',
+  'lead.restored': 'bg-acao',
   'lead.assigned': 'bg-violet-500',
 };
 
@@ -76,7 +76,7 @@ export function LinhaDoTempo({
 }) {
   if (eventos.length === 0) {
     return (
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-sm text-texto-2">
         Nenhum evento registrado ainda.
       </p>
     );
@@ -96,23 +96,23 @@ export function LinhaDoTempo({
             <span
               aria-hidden
               className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                COR_EVENTO[evento.tipo] ?? 'bg-neutral-400'
+                COR_EVENTO[evento.tipo] ?? 'bg-texto-3'
               }`}
             />
 
-            <div className="min-w-0 flex-1 border-b border-black/5 pb-4 last:border-0 dark:border-white/10">
+            <div className="min-w-0 flex-1 border-b border-linha pb-4 last:border-0">
               <p className="text-sm">
                 {evento.descricao ?? ROTULO_EVENTO[evento.tipo] ?? evento.tipo}
               </p>
 
               {evento.tipo === 'lead.assigned' && (
-                <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                <p className="mt-1 text-xs text-texto-2">
                   De {nomeDe(evento.dados.de)} para {nomeDe(evento.dados.para)}
                 </p>
               )}
 
               {alteracoes.length > 0 && (
-                <ul className="mt-1 space-y-0.5 text-xs text-neutral-600 dark:text-neutral-400">
+                <ul className="mt-1 space-y-0.5 text-xs text-texto-2">
                   {alteracoes.map((alteracao) => (
                     <li key={alteracao.campo}>
                       <span className="font-medium">{alteracao.rotulo}:</span> {alteracao.de} →{' '}
@@ -122,7 +122,7 @@ export function LinhaDoTempo({
                 </ul>
               )}
 
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-texto-3">
                 {formatarDataHora(evento.criado_em)}
                 {evento.autor ? ` · ${evento.autor}` : ' · sistema'}
               </p>

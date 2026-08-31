@@ -80,11 +80,11 @@ export function FormLogin() {
         {enviando ? 'Entrando…' : 'Entrar'}
       </button>
 
-      <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-center text-sm text-texto-2">
         Ainda não tem conta?{' '}
         <Link
           href="/cadastro"
-          className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          className="font-medium text-acao hover:underline"
         >
           Criar conta
         </Link>

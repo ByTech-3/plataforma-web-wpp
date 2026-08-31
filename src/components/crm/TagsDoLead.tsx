@@ -87,7 +87,7 @@ export function TagsDoLead({ leadId, aplicadas, disponiveis, compacto = false }:
                 evento.stopPropagation();
                 setAbrindo(true);
               }}
-              className="rounded-full border border-dashed border-black/25 px-2 py-0.5 text-xs text-neutral-600 transition hover:bg-black/5 disabled:opacity-50 dark:border-white/30 dark:text-neutral-400 dark:hover:bg-white/10"
+              className="rounded-full border border-dashed border-linha-forte px-2 py-0.5 text-xs text-texto-2 transition hover:bg-superficie-2 disabled:opacity-50"
             >
               + etiqueta
             </button>
@@ -107,7 +107,7 @@ export function TagsDoLead({ leadId, aplicadas, disponiveis, compacto = false }:
                 executar(() => aplicarTag({ lead_id: leadId, tag_id: id }));
                 setAbrindo(false);
               }}
-              className="rounded-md border border-black/15 bg-transparent px-2 py-1 text-xs dark:border-white/20"
+              className="rounded-padrao border border-linha-forte bg-transparent px-2 py-1 text-xs"
               aria-label="Escolher etiqueta existente"
             >
               <option value="">Escolher existente…</option>
@@ -140,7 +140,7 @@ export function TagsDoLead({ leadId, aplicadas, disponiveis, compacto = false }:
             placeholder="ou criar nova + Enter"
             maxLength={40}
             disabled={pendente}
-            className="w-40 rounded-md border border-black/15 bg-transparent px-2 py-1 text-xs dark:border-white/20"
+            className="w-40 rounded-padrao border border-linha-forte bg-transparent px-2 py-1 text-xs"
             aria-label="Criar nova etiqueta"
           />
 
@@ -150,14 +150,14 @@ export function TagsDoLead({ leadId, aplicadas, disponiveis, compacto = false }:
               setAbrindo(false);
               setNovo('');
             }}
-            className="text-xs text-neutral-500 hover:underline"
+            className="text-xs text-texto-3 hover:underline"
           >
             cancelar
           </button>
         </div>
       )}
 
-      {erro && <p className="mt-2 text-xs text-red-700 dark:text-red-400">{erro}</p>}
+      {erro && <p className="mt-2 text-xs text-perigo">{erro}</p>}
     </div>
   );
 }

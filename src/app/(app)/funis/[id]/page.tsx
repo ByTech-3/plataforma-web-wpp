@@ -24,29 +24,29 @@ export default async function PaginaEtapasDoFunil({
   return (
     <div className="space-y-6">
       <header>
-        <Link href="/funis" className="text-sm text-neutral-600 hover:underline dark:text-neutral-400">
+        <Link href="/funis" className="text-sm text-texto-2 hover:underline">
           ← Voltar para os funis
         </Link>
 
         <h1 className="mt-2 flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">
           {dados.funil.nome}
           {dados.funil.padrao && (
-            <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+            <span className="rounded-full bg-acao-suave px-2.5 py-1 text-xs font-medium text-acao">
               Padrão
             </span>
           )}
           {dados.funil.arquivado && (
-            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <span className="rounded-full bg-alerta-suave px-2.5 py-1 text-xs font-medium text-alerta">
               Arquivado
             </span>
           )}
         </h1>
 
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-texto-2">
           {dados.funil.total_leads} {dados.funil.total_leads === 1 ? 'lead' : 'leads'} neste funil ·{' '}
           <Link
             href={`/kanban?funil=${dados.funil.id}`}
-            className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+            className="font-medium text-acao hover:underline"
           >
             abrir o quadro
           </Link>

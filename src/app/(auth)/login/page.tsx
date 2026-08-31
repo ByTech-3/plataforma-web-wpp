@@ -9,12 +9,12 @@ export default function PaginaLogin() {
   return (
     <div className={CARTAO}>
       <h1 className="text-xl font-semibold tracking-tight">Entrar</h1>
-      <p className="mt-1 mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="mt-1 mb-6 text-sm text-texto-2">
         Acesse o painel da sua empresa.
       </p>
 
       {/* Suspense porque o formulário lê `?proximo=` da URL. */}
-      <Suspense fallback={<p className="text-sm text-neutral-500">Carregando…</p>}>
+      <Suspense fallback={<p className="text-sm text-texto-3">Carregando…</p>}>
         <FormLogin />
       </Suspense>
     </div>

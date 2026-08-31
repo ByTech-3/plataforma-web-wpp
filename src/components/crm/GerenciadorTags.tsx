@@ -16,8 +16,8 @@ import { COR_PADRAO_TIPO, type EstadoAcao } from '@/lib/crm/tipos';
 import type { TagGerenciavel } from '@/lib/crm/tags';
 
 const BOTAO_MENOR =
-  'rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition ' +
-  'hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10';
+  'rounded-padrao border border-linha-forte px-3 py-1.5 text-xs font-medium transition ' +
+  'hover:bg-superficie-2 disabled:opacity-50';
 
 export function GerenciadorTags({
   tags,
@@ -47,13 +47,13 @@ export function GerenciadorTags({
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Etiquetas da organização</h2>
-        <p className="mt-1 mb-4 text-xs text-neutral-500">
+        <p className="mt-1 mb-4 text-xs text-texto-3">
           Maiúsculas não contam: &quot;VIP&quot; e &quot;vip&quot; seriam a mesma etiqueta, e o
           banco recusa a segunda.
         </p>
 
         {tags.length === 0 ? (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm text-texto-2">
             Nenhuma etiqueta ainda. Crie acima, ou direto na ficha de um lead.
           </p>
         ) : (
@@ -126,14 +126,14 @@ function FormNovaTag({
             value={cor}
             onChange={(evento) => setCor(evento.target.value)}
             disabled={pendente}
-            className="h-9 w-14 cursor-pointer rounded-md border border-black/15 bg-transparent dark:border-white/20"
+            className="h-9 w-14 cursor-pointer rounded-padrao border border-linha-forte bg-transparent"
           />
         </div>
 
         <button
           type="submit"
           disabled={pendente || !nome.trim()}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          className="rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition hover:bg-acao-forte disabled:opacity-60"
         >
           Criar
         </button>
@@ -170,10 +170,10 @@ function LinhaTag({
   }
 
   return (
-    <li className="flex flex-wrap items-end gap-3 rounded-lg border border-black/10 p-3 dark:border-white/15">
+    <li className="flex flex-wrap items-end gap-3 rounded-padrao border border-linha p-3">
       <span
         aria-hidden
-        className="mb-2 h-4 w-4 shrink-0 rounded-full border border-black/10"
+        className="mb-2 h-4 w-4 shrink-0 rounded-full border border-linha"
         style={{ background: tag.cor ?? COR_PADRAO_TIPO.aberta }}
       />
 
@@ -201,11 +201,11 @@ function LinhaTag({
           value={cor}
           onChange={(evento) => setCor(evento.target.value)}
           disabled={!podeGerenciar || pendente}
-          className="h-9 w-14 cursor-pointer rounded-md border border-black/15 bg-transparent dark:border-white/20"
+          className="h-9 w-14 cursor-pointer rounded-padrao border border-linha-forte bg-transparent"
         />
       </div>
 
-      <span className="mb-2 text-xs text-neutral-500">
+      <span className="mb-2 text-xs text-texto-3">
         {tag.total_leads} {tag.total_leads === 1 ? 'lead' : 'leads'}
       </span>
 
@@ -221,7 +221,7 @@ function LinhaTag({
           </button>
           <button
             type="button"
-            className={`${BOTAO_MENOR} text-red-700 dark:text-red-400`}
+            className={`${BOTAO_MENOR} text-perigo`}
             disabled={pendente}
             onClick={confirmarExclusao}
           >

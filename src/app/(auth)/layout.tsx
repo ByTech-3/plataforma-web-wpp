@@ -11,7 +11,7 @@ export default function LayoutAutenticacao({
     <div className="flex min-h-full flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <Link href="/" className="block text-center">
-          <p className="text-xs font-medium uppercase tracking-widest text-neutral-500">
+          <p className="text-xs font-medium uppercase tracking-widest text-texto-3">
             ByTech3
           </p>
           <p className="mt-1 text-lg font-semibold tracking-tight">

@@ -31,12 +31,12 @@ export default async function PaginaEditarLead({ params }: { params: Promise<{ i
       <header>
         <Link
           href={`/crm/${lead.id}`}
-          className="text-sm text-neutral-600 hover:underline dark:text-neutral-400"
+          className="text-sm text-texto-2 hover:underline"
         >
           ← Voltar para a ficha
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Editar lead</h1>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-texto-2">
           Cada alteração entra na linha do tempo do lead, com autor e horário.
         </p>
       </header>
@@ -65,7 +65,7 @@ export default async function PaginaEditarLead({ params }: { params: Promise<{ i
         <h2 className="text-sm font-semibold">
           {lead.arquivado ? 'Restaurar lead' : 'Arquivar lead'}
         </h2>
-        <p className="mt-1 mb-4 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 mb-4 text-sm text-texto-2">
           {lead.arquivado
             ? 'O lead volta a aparecer na listagem e no funil.'
             : 'O lead sai da listagem do dia a dia, mas continua no banco com todo o histórico. Não existe exclusão: descarte aqui é sempre reversível.'}

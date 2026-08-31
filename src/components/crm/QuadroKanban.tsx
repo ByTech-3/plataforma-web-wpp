@@ -60,8 +60,8 @@ type Provisorio = { id: string; colunaId: string; nome: string };
 type Confirmacao = { conversa: CartaoConversa; stageId: string; indice: number };
 
 const BOTAO_MENOR =
-  'rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition ' +
-  'hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10';
+  'rounded-padrao border border-linha-forte px-3 py-1.5 text-xs font-medium transition ' +
+  'hover:bg-superficie-2 disabled:opacity-50';
 
 /** Cor escolhida na gestão do funil; na falta dela, a cor do tipo. */
 function corDaEtapa(coluna: ColunaKanban): string {
@@ -202,7 +202,7 @@ export function QuadroKanban({
           inteira a cada arrasto dá a impressão de que o sistema travou. */}
       <p
         aria-live="polite"
-        className={`h-4 text-xs text-neutral-500 transition-opacity ${
+        className={`h-4 text-xs text-texto-3 transition-opacity ${
           pendente ? 'opacity-100' : 'opacity-0'
         }`}
       >
@@ -279,23 +279,23 @@ function ColunaInbox({
   const novas = conversas.filter((conversa) => conversa.situacao === 'nova').length;
 
   return (
-    <section className="flex max-h-[calc(100vh-14rem)] w-72 shrink-0 flex-col rounded-xl border border-dashed border-black/20 bg-black/2 dark:border-white/25 dark:bg-white/2">
-      <header className="shrink-0 border-b border-black/10 px-3 py-3 dark:border-white/15">
+    <section className="flex max-h-[calc(100vh-14rem)] w-72 shrink-0 flex-col rounded-grande border border-dashed border-linha-forte bg-superficie-2">
+      <header className="shrink-0 border-b border-linha px-3 py-3">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-neutral-400" aria-hidden />
+          <span className="h-2 w-2 shrink-0 rounded-full bg-texto-3" aria-hidden />
           <h2 className="truncate text-sm font-semibold">Inbox do WhatsApp</h2>
-          <span className="ml-auto rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:bg-white/10 dark:text-neutral-400">
+          <span className="ml-auto rounded-full bg-superficie-2 px-2 py-0.5 text-xs font-medium text-texto-2">
             {novas}
           </span>
         </div>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-texto-3">
           Conversas recentes. Arraste para uma etapa para virar lead.
         </p>
       </header>
 
       <div className="flex min-h-32 flex-1 flex-col gap-2 overflow-y-auto p-3">
         {conversas.length === 0 ? (
-          <div className="px-1 py-6 text-center text-xs text-neutral-500">
+          <div className="px-1 py-6 text-center text-xs text-texto-3">
             <p>Nenhuma conversa capturada ainda.</p>
             <p className="mt-2">
               Abra o WhatsApp Web com a extensão e use <strong>Atualizar conversas</strong> no
@@ -344,24 +344,24 @@ function CartaoDaConversa({
         aoIniciarArrasto();
       }}
       onDragEnd={aoTerminarArrasto}
-      className={`rounded-lg border border-black/10 bg-white p-3 shadow-sm transition dark:border-white/15 dark:bg-neutral-900 ${
+      className={`rounded-padrao border border-linha bg-white p-3 shadow-carta transition ${
         podeArrastar ? 'cursor-grab active:cursor-grabbing' : 'opacity-75'
       } ${arrastando ? 'opacity-40' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="truncate text-sm font-semibold">{conversa.titulo}</p>
         {conversa.eh_grupo && (
-          <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-neutral-600 dark:bg-white/10 dark:text-neutral-400">
+          <span className="shrink-0 rounded-full bg-superficie-2 px-2 py-0.5 text-[11px] text-texto-2">
             Grupo
           </span>
         )}
       </div>
 
-      <p className="mt-1 truncate text-xs text-neutral-600 dark:text-neutral-400">
+      <p className="mt-1 truncate text-xs text-texto-2">
         {conversa.telefone ? (
           formatarTelefone(conversa.telefone)
         ) : (
-          <span className="text-amber-700 dark:text-amber-500">
+          <span className="text-alerta">
             Telefone não lido — vai pedir ao soltar
           </span>
         )}
@@ -369,13 +369,13 @@ function CartaoDaConversa({
 
       {conversa.situacao === 'ja_e_lead' && (
         <p className="mt-2 text-xs">
-          <span className="font-medium text-emerald-700 dark:text-emerald-400">Já é lead</span>
+          <span className="font-medium text-acao">Já é lead</span>
           {conversa.lead_id && (
             <>
               {' · '}
               <Link
                 href={`/crm/${conversa.lead_id}`}
-                className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                className="font-medium text-acao hover:underline"
                 draggable={false}
               >
                 abrir ficha
@@ -386,7 +386,7 @@ function CartaoDaConversa({
       )}
 
       {conversa.situacao === 'outra_carteira' && (
-        <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
+        <p className="mt-2 text-xs text-alerta">
           Já é lead de outro vendedor. Fale com o gestor antes de cadastrar de novo.
         </p>
       )}
@@ -429,10 +429,10 @@ function Coluna({
 
   return (
     <section
-      className={`flex max-h-[calc(100vh-14rem)] w-72 shrink-0 flex-col rounded-xl border transition ${
+      className={`flex max-h-[calc(100vh-14rem)] w-72 shrink-0 flex-col rounded-grande border transition ${
         recebendo
-          ? 'border-emerald-500 bg-emerald-500/5'
-          : 'border-black/10 bg-black/2 dark:border-white/15 dark:bg-white/2'
+          ? 'border-acao bg-acao-suave'
+          : 'border-linha bg-superficie-2'
       }`}
       onDragOver={(evento) => {
         if (!arrasto) return;
@@ -450,7 +450,7 @@ function Coluna({
         aoSoltar(calcularIndice(lista.current, evento.clientY));
       }}
     >
-      <header className="shrink-0 border-b border-black/10 px-3 py-3 dark:border-white/15">
+      <header className="shrink-0 border-b border-linha px-3 py-3">
         <div className="flex items-center gap-2">
           <span
             className="h-2 w-2 shrink-0 rounded-full"
@@ -458,11 +458,11 @@ function Coluna({
             aria-hidden
           />
           <h2 className="truncate text-sm font-semibold">{coluna.nome}</h2>
-          <span className="ml-auto rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:bg-white/10 dark:text-neutral-400">
+          <span className="ml-auto rounded-full bg-superficie-2 px-2 py-0.5 text-xs font-medium text-texto-2">
             {total}
           </span>
         </div>
-        <p className="mt-1 text-xs text-neutral-500">{formatarMoeda(soma)}</p>
+        <p className="mt-1 text-xs text-texto-3">{formatarMoeda(soma)}</p>
       </header>
 
       {/* A coluna rola por dentro. Sem isto, uma etapa com muitos cartões
@@ -496,15 +496,15 @@ function Coluna({
         {provisorios.map((item) => (
           <div
             key={item.id}
-            className="rounded-lg border border-dashed border-emerald-500/60 bg-emerald-500/5 p-3 text-sm"
+            className="rounded-padrao border border-dashed border-acao/60 bg-acao-suave p-3 text-sm"
           >
             <p className="truncate font-semibold">{item.nome}</p>
-            <p className="mt-1 text-xs text-neutral-500">Criando lead…</p>
+            <p className="mt-1 text-xs text-texto-3">Criando lead…</p>
           </div>
         ))}
 
         {total === 0 && provisorios.length === 0 && !recebendo && (
-          <p className="px-1 py-6 text-center text-xs text-neutral-500">
+          <p className="px-1 py-6 text-center text-xs text-texto-3">
             Nenhum lead nesta etapa.
           </p>
         )}
@@ -514,7 +514,7 @@ function Coluna({
 }
 
 function Marcador() {
-  return <div className="mb-2 h-0.5 rounded-full bg-emerald-500" aria-hidden />;
+  return <div className="mb-2 h-0.5 rounded-full bg-acao" aria-hidden />;
 }
 
 function Cartao({
@@ -547,13 +547,13 @@ function Cartao({
         aoIniciarArrasto();
       }}
       onDragEnd={aoTerminarArrasto}
-      className={`cursor-grab rounded-lg border border-black/10 bg-white p-3 shadow-sm transition active:cursor-grabbing dark:border-white/15 dark:bg-neutral-900 ${
+      className={`cursor-grab rounded-padrao border border-linha bg-white p-3 shadow-carta transition active:cursor-grabbing ${
         arrastando ? 'opacity-40' : ''
       }`}
     >
       <Link
         href={`/crm/${cartao.lead_id}`}
-        className="block truncate text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+        className="block truncate text-sm font-semibold text-acao hover:underline"
         // Sem isto, arrastar pelo nome vira "arrastar um link" no Firefox.
         draggable={false}
       >
@@ -561,14 +561,14 @@ function Cartao({
       </Link>
 
       {cartao.telefone && (
-        <p className="mt-1 truncate text-xs text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 truncate text-xs text-texto-2">
           {cartao.telefone}
         </p>
       )}
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{formatarMoeda(cartao.valor)}</span>
-        <span className="truncate text-xs text-neutral-500" title={cartao.responsavel?.nome}>
+        <span className="truncate text-xs text-texto-3" title={cartao.responsavel?.nome}>
           {cartao.responsavel?.nome ?? 'Sem responsável'}
         </span>
       </div>
@@ -596,7 +596,7 @@ function Cartao({
         <select
           value={colunaId}
           onChange={(evento) => aoEscolherEtapa(evento.target.value)}
-          className="w-full rounded-md border border-black/15 bg-transparent px-2 py-1 text-xs dark:border-white/20"
+          className="w-full rounded-padrao border border-linha-forte bg-transparent px-2 py-1 text-xs"
         >
           {colunas.map((coluna) => (
             <option key={coluna.id} value={coluna.id}>
@@ -633,7 +633,7 @@ function FormConfirmarTelefone({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form
-        className="w-full max-w-md rounded-xl border border-black/10 bg-white p-6 shadow-xl dark:border-white/15 dark:bg-neutral-900"
+        className="w-full max-w-md rounded-grande border border-linha bg-white p-6 shadow-alta"
         onSubmit={(evento) => {
           evento.preventDefault();
           if (nome.trim().length < 2) return;
@@ -641,7 +641,7 @@ function FormConfirmarTelefone({
         }}
       >
         <h2 className="text-base font-semibold">Confirme o telefone</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-texto-2">
           Não foi possível ler o número desta conversa no WhatsApp. Informe se souber — pode ficar
           em branco.
         </p>
@@ -682,7 +682,7 @@ function FormConfirmarTelefone({
           <button
             type="submit"
             disabled={pendente || nome.trim().length < 2}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+            className="rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition hover:bg-acao-forte disabled:opacity-60"
           >
             Criar lead
           </button>

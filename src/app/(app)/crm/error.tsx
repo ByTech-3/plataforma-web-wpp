@@ -23,13 +23,13 @@ export default function ErroCrm({
         <button
           type="button"
           onClick={reset}
-          className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          className="rounded-padrao border border-linha-forte px-4 py-2 text-sm font-medium transition hover:bg-superficie-2"
         >
           Tentar de novo
         </button>
         <Link
           href="/dashboard"
-          className="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          className="text-sm font-medium text-acao hover:underline"
         >
           Ir para o painel
         </Link>

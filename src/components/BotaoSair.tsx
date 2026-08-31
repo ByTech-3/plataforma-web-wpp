@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { criarClienteBrowser } from '@/lib/supabase/client';
+import { BOTAO_MENOR } from '@/components/ui';
 
 export function BotaoSair() {
   const router = useRouter();
@@ -19,12 +20,7 @@ export function BotaoSair() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={sair}
-      disabled={saindo}
-      className="rounded-md border border-black/15 px-3 py-1.5 text-sm font-medium transition hover:bg-black/5 disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
-    >
+    <button type="button" onClick={sair} disabled={saindo} className={BOTAO_MENOR}>
       {saindo ? 'Saindo…' : 'Sair'}
     </button>
   );

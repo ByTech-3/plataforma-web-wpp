@@ -36,7 +36,7 @@ export function FormOnboarding({ nomeSugerido }: { nomeSugerido: string }) {
 
   if (enviando && !erro) {
     return (
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-sm text-texto-2">
         Criando sua organização e iniciando o período de teste…
       </p>
     );

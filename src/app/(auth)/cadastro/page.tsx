@@ -8,7 +8,7 @@ export default function PaginaCadastro() {
   return (
     <div className={CARTAO}>
       <h1 className="text-xl font-semibold tracking-tight">Criar conta</h1>
-      <p className="mt-1 mb-6 text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="mt-1 mb-6 text-sm text-texto-2">
         Sua empresa começa com 14 dias de teste, sem cartão.
       </p>
 

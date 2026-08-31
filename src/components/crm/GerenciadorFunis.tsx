@@ -21,8 +21,8 @@ import {
 import type { EstadoAcao, FunilGerenciavel } from '@/lib/crm/tipos';
 
 const BOTAO_MENOR =
-  'rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition ' +
-  'hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10';
+  'rounded-padrao border border-linha-forte px-3 py-1.5 text-xs font-medium transition ' +
+  'hover:bg-superficie-2 disabled:opacity-50';
 
 export function GerenciadorFunis({
   funis,
@@ -72,17 +72,17 @@ export function GerenciadorFunis({
                 <h2 className="flex flex-wrap items-center gap-2 text-base font-semibold">
                   {funil.nome}
                   {funil.padrao && (
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <span className="rounded-full bg-acao-suave px-2 py-0.5 text-xs font-medium text-acao">
                       Padrão
                     </span>
                   )}
                 </h2>
                 {funil.descricao && (
-                  <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+                  <p className="mt-1 text-sm text-texto-2">
                     {funil.descricao}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs text-texto-3">
                   {funil.total_etapas} {funil.total_etapas === 1 ? 'etapa' : 'etapas'} ·{' '}
                   {funil.total_leads} {funil.total_leads === 1 ? 'lead' : 'leads'}
                 </p>
@@ -154,7 +154,7 @@ export function GerenciadorFunis({
 
         {ativos.length === 0 && (
           <div className={CARTAO}>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="text-sm text-texto-2">
               Nenhum funil ativo. {podeGerenciar ? 'Crie um acima.' : 'Peça a um gestor para criar.'}
             </p>
           </div>
@@ -164,7 +164,7 @@ export function GerenciadorFunis({
       {arquivados.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold">Arquivados</h2>
-          <p className="mt-1 mb-3 text-xs text-neutral-500">
+          <p className="mt-1 mb-3 text-xs text-texto-3">
             Ficam fora do seletor do Kanban e não recebem leads novos. Os dados continuam no banco.
           </p>
 
@@ -172,11 +172,11 @@ export function GerenciadorFunis({
             {arquivados.map((funil) => (
               <div
                 key={funil.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-black/10 px-4 py-3 dark:border-white/15"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-grande border border-linha px-4 py-3"
               >
                 <div>
                   <p className="text-sm font-medium">{funil.nome}</p>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-texto-3">
                     {funil.total_etapas} etapas · {funil.total_leads} leads
                   </p>
                 </div>
@@ -231,7 +231,7 @@ function FormNovoFunil({
       }}
     >
       <h2 className="text-sm font-semibold">Novo funil</h2>
-      <p className="mt-1 mb-4 text-xs text-neutral-500">
+      <p className="mt-1 mb-4 text-xs text-texto-3">
         Um funil novo nasce sem etapas — crie as etapas dele na tela seguinte.
       </p>
 
@@ -272,7 +272,7 @@ function FormNovoFunil({
       <button
         type="submit"
         disabled={pendente || nome.trim().length < 2}
-        className="mt-4 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+        className="mt-4 rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition hover:bg-acao-forte disabled:opacity-60"
       >
         {pendente ? 'Criando…' : 'Criar funil'}
       </button>

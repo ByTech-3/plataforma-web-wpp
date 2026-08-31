@@ -100,7 +100,7 @@ export default async function PaginaKanban({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{quadro.funil.nome}</h1>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-1 text-sm text-texto-2">
             {quadro.total_cartoes} {quadro.total_cartoes === 1 ? 'lead' : 'leads'} no funil ·{' '}
             {formatarMoeda(somaTotal)} em negociação
           </p>
@@ -110,13 +110,13 @@ export default async function PaginaKanban({
           <SeletorFunil funis={funis} atual={funilId} />
           <Link
             href={`/funis/${funilId}`}
-            className="rounded-md border border-black/15 px-4 py-2.5 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            className="rounded-padrao border border-linha-forte px-4 py-2.5 text-sm font-medium transition hover:bg-superficie-2"
           >
             Editar etapas
           </Link>
           <Link
             href="/crm/novo"
-            className="rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            className="rounded-padrao bg-acao px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-acao-forte"
           >
             Novo lead
           </Link>
@@ -146,7 +146,7 @@ export default async function PaginaKanban({
       {quadro.total_cartoes === 0 && inbox.length === 0 && !temFiltro(filtros) ? (
         <div className={CARTAO}>
           <h2 className="text-sm font-semibold">Nenhum lead neste funil ainda</h2>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-2 text-sm text-texto-2">
             Todo lead cadastrado entra automaticamente no funil padrão, na primeira etapa. Leads
             arquivados não aparecem aqui, e leads que ficaram fora do funil têm o aviso na própria
             ficha, com o botão para colocá-los no quadro.
@@ -154,13 +154,13 @@ export default async function PaginaKanban({
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/crm/novo"
-              className="text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+              className="text-sm font-medium text-acao hover:underline"
             >
               Cadastrar lead
             </Link>
             <Link
               href="/crm"
-              className="text-sm font-medium text-neutral-600 hover:underline dark:text-neutral-400"
+              className="text-sm font-medium text-texto-2 hover:underline"
             >
               Ver a lista de leads
             </Link>
@@ -168,7 +168,7 @@ export default async function PaginaKanban({
         </div>
       ) : (
         <>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-texto-3">
             Arraste os cartões entre as colunas. Cada troca de etapa entra sozinha na linha do tempo
             do lead — quem registra é o banco.
           </p>
@@ -216,10 +216,10 @@ function Aviso({ titulo, children }: { titulo: string; children: React.ReactNode
   return (
     <div className={`mx-auto max-w-lg ${CARTAO}`}>
       <h1 className="text-lg font-semibold">{titulo}</h1>
-      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{children}</p>
+      <p className="mt-2 text-sm text-texto-2">{children}</p>
       <Link
         href="/crm"
-        className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+        className="mt-4 inline-block text-sm font-medium text-acao hover:underline"
       >
         Ir para a lista de leads
       </Link>

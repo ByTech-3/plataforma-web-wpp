@@ -21,7 +21,7 @@ export default async function PaginaDashboard() {
         <h1 className="text-2xl font-semibold tracking-tight">
           {organizacao.organizacao_nome}
         </h1>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-texto-2">
           Você acessa como{' '}
           <span className="font-medium">{ROTULO_PAPEL[organizacao.papel]}</span>.
         </p>
@@ -67,19 +67,19 @@ export default async function PaginaDashboard() {
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Em breve</h2>
-        <ul className="mt-3 space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
+        <ul className="mt-3 space-y-2 text-sm text-texto-2">
           <li>
-            <span className="font-medium text-neutral-800 dark:text-neutral-200">
+            <span className="font-medium text-texto">
               Tags e filtros
             </span>{' '}
             — etiquetar leads e filtrar por responsável, origem, tag e etapa.
           </li>
           <li>
-            <span className="font-medium text-neutral-800 dark:text-neutral-200">Inbox</span> — as
+            <span className="font-medium text-texto">Inbox</span> — as
             conversas recentes do WhatsApp com os dados do CRM ao lado.
           </li>
           <li>
-            <span className="font-medium text-neutral-800 dark:text-neutral-200">
+            <span className="font-medium text-texto">
               Equipe
             </span>{' '}
             — convidar vendedores e definir permissões.
@@ -104,10 +104,10 @@ function Atalho({
   return (
     <div className={`flex flex-col ${CARTAO}`}>
       <h2 className="text-sm font-semibold">{titulo}</h2>
-      <p className="mt-2 flex-1 text-sm text-neutral-600 dark:text-neutral-400">{descricao}</p>
+      <p className="mt-2 flex-1 text-sm text-texto-2">{descricao}</p>
       <Link
         href={href}
-        className="mt-4 inline-block self-start rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+        className="mt-4 inline-block self-start rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition hover:bg-acao-forte"
       >
         {acao}
       </Link>
@@ -125,12 +125,12 @@ function Cartao({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-black/10 p-5 dark:border-white/15">
-      <p className="text-xs font-medium uppercase tracking-widest text-neutral-500">
+    <div className="rounded-grande border border-linha p-5">
+      <p className="text-xs font-medium uppercase tracking-widest text-texto-3">
         {titulo}
       </p>
       <p className="mt-2 truncate text-lg font-semibold">{valor}</p>
-      <p className="mt-1 text-xs text-neutral-500">{children}</p>
+      <p className="mt-1 text-xs text-texto-3">{children}</p>
     </div>
   );
 }

@@ -12,12 +12,12 @@ export default function LeadNaoEncontrado() {
   return (
     <div className={`mx-auto max-w-lg ${CARTAO}`}>
       <h1 className="text-lg font-semibold">Lead não encontrado</h1>
-      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="mt-2 text-sm text-texto-2">
         Ele não existe, foi removido, ou está fora da sua carteira.
       </p>
       <Link
         href="/crm"
-        className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+        className="mt-4 inline-block text-sm font-medium text-acao hover:underline"
       >
         Voltar para os leads
       </Link>

@@ -18,12 +18,12 @@ export default async function PaginaTags() {
       <header>
         <Link
           href="/configuracoes"
-          className="text-sm text-neutral-600 hover:underline dark:text-neutral-400"
+          className="text-sm text-texto-2 hover:underline"
         >
           ← Voltar para configurações
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Etiquetas</h1>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-texto-2">
           Servem para marcar leads e filtrar a listagem e o quadro.
         </p>
       </header>

@@ -3,30 +3,20 @@ import { redirect } from 'next/navigation';
 import { criarClienteServidor } from '@/lib/supabase/server';
 import { carregarContexto } from '@/lib/contexto';
 import { BotaoSair } from '@/components/BotaoSair';
-import { NavPrincipal } from '@/components/NavPrincipal';
+import { BarraLateral } from '@/components/BarraLateral';
+import { SELO_ALERTA, SELO_NEUTRO } from '@/components/ui';
 
 /**
- * Layout das páginas internas. É AQUI que a proteção de rota vale — o
- * redirecionamento do proxy.ts é só uma checagem otimista de cookie.
+ * Casca das páginas internas: navegação lateral + cabeçalho de contexto.
  *
- * `getUser()` valida o token contra o servidor de auth do Supabase. Não usar
- * `getSession()` para decidir acesso: ele confia no cookie sem verificar.
- *
- * Lembrando que nem isto é a última linha de defesa — a RLS é. Mesmo que este
- * layout tivesse um furo, o banco continuaria devolvendo apenas os dados da
- * organização do usuário.
+ * A proteção que vale é a RLS. Aqui a verificação é de rota, e ela ficou
+ * enxuta de propósito: o `proxy.ts` já validou o token contra o servidor de
+ * auth nesta mesma requisição, então `getSession()` lê o cookie SEM ir à rede,
+ * e quem autoriza de fato é `meu_contexto()`, que roda com o JWT do usuário.
  */
 export default async function LayoutApp({ children }: { children: ReactNode }) {
   const supabase = await criarClienteServidor();
 
-  // `getSession()` lê o cookie SEM ir à rede. Antes havia um `getUser()` aqui,
-  // que valida o token contra o servidor de auth — mas o proxy.ts JÁ fez essa
-  // validação nesta mesma requisição. Eram duas idas ao Supabase para
-  // responder a mesma pergunta, uma delas em toda navegação.
-  //
-  // Quem realmente autoriza continua sendo o banco: `meu_contexto()` abaixo
-  // roda com o JWT do usuário e a RLS decide o que volta. Um token forjado não
-  // passa por ela, e nenhum dado da organização aparece sem passar.
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -42,32 +32,46 @@ export default async function LayoutApp({ children }: { children: ReactNode }) {
   }
 
   const organizacao = contexto[0];
-  const user = session.user;
+  const emTrial = organizacao.status === 'trial';
 
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="border-b border-black/10 dark:border-white/15">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-widest text-neutral-500">
-              ByTech3
-            </p>
-            <p className="truncate text-sm font-semibold">
-              {organizacao.organizacao_nome}
-            </p>
-          </div>
+    <div className="min-h-full">
+      <BarraLateral />
 
-          <div className="flex items-center gap-3 sm:gap-4">
-            <NavPrincipal />
-            <span className="hidden truncate text-sm text-neutral-600 lg:inline dark:text-neutral-400">
-              {user.email}
-            </span>
-            <BotaoSair />
-          </div>
-        </div>
-      </header>
+      {/* `md:pl-56` abre espaço para a barra lateral; `pb-20` no celular
+          impede que a barra inferior cubra o fim da página. */}
+      <div className="flex min-h-full flex-col pb-20 md:pb-0 md:pl-56">
+        <header className="sticky top-0 z-20 border-b border-linha bg-fundo/85 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <p className="truncate text-sm font-semibold text-texto">
+                {organizacao.organizacao_nome}
+              </p>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">{children}</main>
+              {!organizacao.acesso_ativo ? (
+                <span className={SELO_ALERTA}>Somente leitura</span>
+              ) : (
+                emTrial &&
+                organizacao.dias_restantes !== null && (
+                  <span className={SELO_NEUTRO}>
+                    Teste · {organizacao.dias_restantes}{' '}
+                    {organizacao.dias_restantes === 1 ? 'dia' : 'dias'}
+                  </span>
+                )
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="hidden truncate text-sm text-texto-2 lg:inline">
+                {session.user.email}
+              </span>
+              <BotaoSair />
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-7xl flex-1 px-5 py-8 sm:px-8">{children}</main>
+      </div>
     </div>
   );
 }

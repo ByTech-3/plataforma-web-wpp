@@ -29,7 +29,7 @@ export default async function PaginaNovoLead() {
       <header>
         <Link
           href="/crm"
-          className="text-sm text-neutral-600 hover:underline dark:text-neutral-400"
+          className="text-sm text-texto-2 hover:underline"
         >
           ← Voltar para os leads
         </Link>

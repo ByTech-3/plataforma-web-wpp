@@ -88,7 +88,7 @@ export function FormCadastro() {
         </p>
         <Link
           href="/login"
-          className="block text-center text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          className="block text-center text-sm font-medium text-acao hover:underline"
         >
           Ir para o login
         </Link>
@@ -116,7 +116,7 @@ export function FormCadastro() {
           className={CAMPO}
           disabled={enviando}
         />
-        <p className="mt-1.5 text-xs text-neutral-500">
+        <p className="mt-1.5 text-xs text-texto-3">
           Cria sua organização com 14 dias de teste. Você entra como
           administrador.
         </p>
@@ -166,18 +166,18 @@ export function FormCadastro() {
           className={CAMPO}
           disabled={enviando}
         />
-        <p className="mt-1.5 text-xs text-neutral-500">Mínimo de 8 caracteres.</p>
+        <p className="mt-1.5 text-xs text-texto-3">Mínimo de 8 caracteres.</p>
       </div>
 
       <button type="submit" className={BOTAO_PRIMARIO} disabled={enviando}>
         {enviando ? 'Criando conta…' : 'Criar conta e iniciar teste'}
       </button>
 
-      <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-center text-sm text-texto-2">
         Já tem conta?{' '}
         <Link
           href="/login"
-          className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+          className="font-medium text-acao hover:underline"
         >
           Entrar
         </Link>

@@ -45,12 +45,12 @@ type Contexto =
   | { fase: 'erro'; mensagem: string };
 
 const BOTAO_PRINCIPAL =
-  'rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition ' +
-  'hover:bg-emerald-700 disabled:opacity-60';
+  'rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition ' +
+  'hover:bg-acao-forte disabled:opacity-60';
 
 const BOTAO_SECUNDARIO =
-  'rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition ' +
-  'hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10';
+  'rounded-padrao border border-linha-forte px-3 py-1.5 text-xs font-medium transition ' +
+  'hover:bg-superficie-2 disabled:opacity-50';
 
 export function EnviarMensagem({ leadId, nome, variante = 'botao' }: Props) {
   const [aberto, setAberto] = useState(false);
@@ -209,13 +209,13 @@ function PainelEnvio({
       onClick={aoFechar}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl border border-black/10 bg-white shadow-xl dark:border-white/15 dark:bg-neutral-900"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-grande border border-linha bg-white shadow-alta"
         onClick={(evento) => evento.stopPropagation()}
       >
-        <header className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4 dark:border-white/15">
+        <header className="flex items-center justify-between gap-3 border-b border-linha px-5 py-4">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold">Mensagem para {nome}</h2>
-            <p className="text-xs text-neutral-500">Enviada pelo seu WhatsApp Web</p>
+            <p className="text-xs text-texto-3">Enviada pelo seu WhatsApp Web</p>
           </div>
           <button type="button" onClick={aoFechar} className={BOTAO_SECUNDARIO}>
             Fechar
@@ -227,13 +227,13 @@ function PainelEnvio({
         </div>
 
         {podeEscrever && (
-          <footer className="border-t border-black/10 px-5 py-4 dark:border-white/15">
+          <footer className="border-t border-linha px-5 py-4">
             {resultado && (
               <p
-                className={`mb-3 rounded-md px-3 py-2 text-sm ${
+                className={`mb-3 rounded-padrao px-3 py-2 text-sm ${
                   resultado.tipo === 'ok'
-                    ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-400'
-                    : 'bg-red-500/10 text-red-700 dark:text-red-400'
+                    ? 'bg-acao-suave text-acao-texto'
+                    : 'bg-perigo-suave text-perigo'
                 }`}
               >
                 {resultado.texto}
@@ -248,7 +248,7 @@ function PainelEnvio({
               maxLength={1000}
               disabled={enviando}
               placeholder="Escreva a mensagem…"
-              className="w-full rounded-md border border-black/15 bg-transparent px-3 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 disabled:opacity-60 dark:border-white/20"
+              className="w-full rounded-padrao border border-linha-forte bg-transparent px-3 py-2 text-sm outline-none transition focus:border-acao focus:ring-2 focus:ring-acao/20 disabled:opacity-60"
             />
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -260,7 +260,7 @@ function PainelEnvio({
               >
                 {enviando ? 'Enviando…' : 'Enviar'}
               </button>
-              <span className="text-xs text-neutral-500">
+              <span className="text-xs text-texto-3">
                 Uma mensagem por vez, enviada por você.
               </span>
             </div>
@@ -329,7 +329,7 @@ function Conteudo({
 
   if (contexto.fase === 'carregando') {
     return (
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+      <p className="text-sm text-texto-2">
         {autorizacao.fase === 'verificando'
           ? 'Verificando permissão…'
           : 'Abrindo a conversa no WhatsApp…'}
@@ -351,12 +351,12 @@ function Conteudo({
         )
       )}
 
-      <p className="text-xs font-medium uppercase tracking-widest text-neutral-500">
+      <p className="text-xs font-medium uppercase tracking-widest text-texto-3">
         Últimas mensagens
       </p>
 
       {contexto.mensagens.length === 0 ? (
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="text-sm text-texto-2">
           Nenhuma mensagem nesta conversa ainda.
         </p>
       ) : (
@@ -364,22 +364,22 @@ function Conteudo({
           {contexto.mensagens.map((mensagem, indice) => (
             <li
               key={`${indice}-${mensagem.horario ?? ''}`}
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+              className={`max-w-[85%] rounded-padrao px-3 py-2 text-sm ${
                 mensagem.direcao === 'saida'
-                  ? 'ml-auto bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
-                  : 'bg-black/5 dark:bg-white/10'
+                  ? 'ml-auto bg-acao-suave text-acao-texto'
+                  : 'bg-superficie-2'
               }`}
             >
               <p className="whitespace-pre-wrap wrap-break-word">{mensagem.texto}</p>
               {mensagem.horario && (
-                <p className="mt-1 text-[11px] text-neutral-500">{mensagem.horario}</p>
+                <p className="mt-1 text-[11px] text-texto-3">{mensagem.horario}</p>
               )}
             </li>
           ))}
         </ul>
       )}
 
-      <p className="pt-2 text-[11px] text-neutral-500">
+      <p className="pt-2 text-[11px] text-texto-3">
         Lidas ao vivo do seu WhatsApp. Não ficam guardadas em lugar nenhum.
       </p>
     </div>
@@ -394,11 +394,11 @@ function Aviso({
   children: React.ReactNode;
 }) {
   const estilos = {
-    amarelo: 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-400',
-    vermelho: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400',
+    amarelo: 'border-amber-500/30 bg-alerta/10 text-amber-800',
+    vermelho: 'border-red-500/30 bg-perigo-suave text-perigo',
     neutro:
-      'border-black/10 bg-black/5 text-neutral-700 dark:border-white/15 dark:bg-white/10 dark:text-neutral-300',
+      'border-linha bg-superficie-2 text-texto-2',
   }[tom];
 
-  return <p className={`rounded-md border px-3 py-2.5 text-sm ${estilos}`}>{children}</p>;
+  return <p className={`rounded-padrao border px-3 py-2.5 text-sm ${estilos}`}>{children}</p>;
 }

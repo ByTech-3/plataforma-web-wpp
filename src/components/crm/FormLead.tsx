@@ -78,7 +78,7 @@ export function FormLead({
       <div key={estado.tentativa} className="space-y-5">
         <div>
           <label className={ROTULO} htmlFor="nome">
-            Nome <span className="text-red-600">*</span>
+            Nome <span className="text-perigo">*</span>
           </label>
           <input
             id="nome"
@@ -146,7 +146,7 @@ export function FormLead({
                 </option>
               ))}
             </select>
-            <p className="mt-1.5 text-xs text-neutral-500">
+            <p className="mt-1.5 text-xs text-texto-3">
               Lista fixa. Sem informação, fica como {ORIGEM_PADRAO}.
             </p>
           </div>
@@ -171,7 +171,7 @@ export function FormLead({
               ))}
             </select>
             {!podeDistribuir && (
-              <p className="mt-1.5 text-xs text-neutral-500">
+              <p className="mt-1.5 text-xs text-texto-3">
                 Como vendedor, você atribui o lead a si mesmo ou deixa sem responsável.
               </p>
             )}
@@ -213,7 +213,7 @@ export function FormLead({
         </div>
       </div>
 
-      {avisoFunil && <p className="text-xs text-neutral-500">{avisoFunil}</p>}
+      {avisoFunil && <p className="text-xs text-texto-3">{avisoFunil}</p>}
 
       <div className="flex items-center gap-3">
         <button type="submit" className={`${BOTAO_PRIMARIO} sm:w-auto`} disabled={enviando}>
@@ -221,7 +221,7 @@ export function FormLead({
         </button>
         <Link
           href={urlCancelar}
-          className="rounded-md border border-black/15 px-4 py-2.5 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          className="rounded-padrao border border-linha-forte px-4 py-2.5 text-sm font-medium transition hover:bg-superficie-2"
         >
           Cancelar
         </Link>

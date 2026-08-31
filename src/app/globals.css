@@ -1,26 +1,140 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================================
+   SISTEMA VISUAL — ByTech3
+   ============================================================================
+   Três decisões que governam tudo aqui:
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+   1. NEUTRO FRIO como base. O cinza puro deixa a tela com cara de wireframe;
+      o neutro frio (zinc) tem uma leitura de produto, não de rascunho.
+
+   2. O VERDE É RARO. Ele marca A ação principal da tela, uma por vez. Antes
+      estava em botão, link, selo e etapa ao mesmo tempo, e quando tudo é
+      destaque nada é — o olho perde para onde ir.
+
+   3. MENOS BORDA, MAIS SUPERFÍCIE. Separação por cor de fundo e sombra sutil,
+      não por linha em volta de tudo.
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* Superfícies, do fundo para a frente */
+  --fundo: #fafafa;
+  --superficie: #ffffff;
+  --superficie-2: #f4f4f5;
+  --superficie-3: #e4e4e7;
+
+  /* Texto */
+  --texto: #18181b;
+  --texto-2: #52525b;
+  --texto-3: #a1a1aa;
+
+  /* Linhas — usadas com parcimônia */
+  --linha: #e4e4e7;
+  --linha-forte: #d4d4d8;
+
+  /* Ação: uma por tela */
+  --acao: #059669;
+  --acao-forte: #047857;
+  --acao-suave: #ecfdf5;
+  --acao-texto: #065f46;
+
+  /* Semânticos */
+  --alerta: #b45309;
+  --alerta-suave: #fffbeb;
+  --alerta-linha: #fcd34d;
+  --perigo: #b91c1c;
+  --perigo-suave: #fef2f2;
+  --perigo-linha: #fca5a5;
+  --info: #0369a1;
+  --info-suave: #f0f9ff;
+
+  --sombra: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 3px rgb(24 24 27 / 0.06);
+  --sombra-alta: 0 4px 12px rgb(24 24 27 / 0.08), 0 2px 4px rgb(24 24 27 / 0.04);
+
+  /* Grade de 4px: todo espaçamento é múltiplo disto */
+  --raio: 10px;
+  --raio-g: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+
+    --fundo: #09090b;
+    --superficie: #18181b;
+    --superficie-2: #27272a;
+    --superficie-3: #3f3f46;
+
+    --texto: #fafafa;
+    --texto-2: #a1a1aa;
+    --texto-3: #71717a;
+
+    --linha: #27272a;
+    --linha-forte: #3f3f46;
+
+    --acao: #10b981;
+    --acao-forte: #34d399;
+    --acao-suave: #052e23;
+    --acao-texto: #6ee7b7;
+
+    --alerta: #fbbf24;
+    --alerta-suave: #2a1e05;
+    --alerta-linha: #78350f;
+    --perigo: #f87171;
+    --perigo-suave: #2a0d0d;
+    --perigo-linha: #7f1d1d;
+    --info: #38bdf8;
+    --info-suave: #08203a;
+
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.3);
+    --sombra-alta: 0 4px 14px rgb(0 0 0 / 0.45);
   }
 }
 
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-superficie-3: var(--superficie-3);
+  --color-texto: var(--texto);
+  --color-texto-2: var(--texto-2);
+  --color-texto-3: var(--texto-3);
+  --color-linha: var(--linha);
+  --color-linha-forte: var(--linha-forte);
+  --color-acao: var(--acao);
+  --color-acao-forte: var(--acao-forte);
+  --color-acao-suave: var(--acao-suave);
+  --color-acao-texto: var(--acao-texto);
+  --color-alerta: var(--alerta);
+  --color-alerta-suave: var(--alerta-suave);
+  --color-alerta-linha: var(--alerta-linha);
+  --color-perigo: var(--perigo);
+  --color-perigo-suave: var(--perigo-suave);
+  --color-perigo-linha: var(--perigo-linha);
+  --color-info: var(--info);
+  --color-info-suave: var(--info-suave);
+
+  --font-sans: var(--font-inter);
+
+  --radius-padrao: var(--raio);
+  --radius-grande: var(--raio-g);
+
+  --shadow-carta: var(--sombra);
+  --shadow-alta: var(--sombra-alta);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* Números alinhados em tabelas e valores monetários. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Foco visível e consistente — acessibilidade não é opcional. */
+:focus-visible {
+  outline: 2px solid var(--acao);
+  outline-offset: 2px;
 }

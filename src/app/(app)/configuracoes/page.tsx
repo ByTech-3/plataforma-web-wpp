@@ -20,7 +20,7 @@ export default async function PaginaConfiguracoes() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="mt-1 text-sm text-texto-2">
           Estrutura do CRM, etiquetas e dados da organização.
         </p>
       </header>
@@ -56,14 +56,14 @@ export default async function PaginaConfiguracoes() {
           <Dado rotulo="Plano">
             {organizacao.status ? ROTULO_STATUS[organizacao.status] : 'Sem assinatura'}
             {organizacao.status === 'trial' && organizacao.dias_restantes !== null && (
-              <span className="text-neutral-500">
+              <span className="text-texto-3">
                 {' '}
                 · {organizacao.dias_restantes} dia(s)
               </span>
             )}
           </Dado>
         </dl>
-        <p className="mt-4 text-xs text-neutral-500">
+        <p className="mt-4 text-xs text-texto-3">
           Convidar vendedores e definir permissões entra numa fase própria. Hoje os membros são
           adicionados direto no banco.
         </p>
@@ -88,13 +88,13 @@ function Atalho({
   return (
     <div className={`flex flex-col ${CARTAO}`}>
       <h2 className="text-sm font-semibold">{titulo}</h2>
-      <p className="mt-2 flex-1 text-sm text-neutral-600 dark:text-neutral-400">{descricao}</p>
+      <p className="mt-2 flex-1 text-sm text-texto-2">{descricao}</p>
       {restrito && (
-        <p className="mt-2 text-xs text-neutral-500">Você pode consultar, mas não editar.</p>
+        <p className="mt-2 text-xs text-texto-3">Você pode consultar, mas não editar.</p>
       )}
       <Link
         href={href}
-        className="mt-4 inline-block self-start rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+        className="mt-4 inline-block self-start rounded-padrao border border-linha-forte px-4 py-2 text-sm font-medium transition hover:bg-superficie-2"
       >
         {acao}
       </Link>
@@ -105,7 +105,7 @@ function Atalho({
 function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-widest text-neutral-500">{rotulo}</dt>
+      <dt className="text-xs font-medium uppercase tracking-widest text-texto-3">{rotulo}</dt>
       <dd className="mt-1 text-sm">{children}</dd>
     </div>
   );

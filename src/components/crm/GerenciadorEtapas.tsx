@@ -29,8 +29,8 @@ import {
 const TIPOS: TipoEtapa[] = ['aberta', 'ganho', 'perdido'];
 
 const BOTAO_MENOR =
-  'rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium transition ' +
-  'hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10';
+  'rounded-padrao border border-linha-forte px-3 py-1.5 text-xs font-medium transition ' +
+  'hover:bg-superficie-2 disabled:opacity-50';
 
 export function GerenciadorEtapas({
   funil,
@@ -71,14 +71,14 @@ export function GerenciadorEtapas({
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Etapas</h2>
-        <p className="mt-1 mb-4 text-xs text-neutral-500">
+        <p className="mt-1 mb-4 text-xs text-texto-3">
           A ordem aqui é a ordem das colunas no quadro. O <strong>tipo</strong> diz o que a etapa
           significa para os relatórios — qual delas conta como venda fechada e qual conta como
           perda — independente do nome que você der a ela.
         </p>
 
         {etapas.length === 0 ? (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm text-texto-2">
             Este funil ainda não tem etapas. Enquanto não tiver, o quadro dele fica sem colunas.
           </p>
         ) : (
@@ -164,7 +164,7 @@ function DadosDoFunil({
       <button
         type="submit"
         disabled={pendente || !mudou}
-        className="mt-4 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+        className="mt-4 rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition hover:bg-acao-forte disabled:opacity-60"
       >
         {pendente ? 'Salvando…' : 'Salvar'}
       </button>
@@ -209,11 +209,11 @@ function LinhaEtapa({
   }
 
   return (
-    <li className="rounded-lg border border-black/10 p-3 dark:border-white/15">
+    <li className="rounded-padrao border border-linha p-3">
       <div className="flex flex-wrap items-end gap-3">
         <span
           aria-hidden
-          className="mb-2 h-4 w-4 shrink-0 rounded-full border border-black/10"
+          className="mb-2 h-4 w-4 shrink-0 rounded-full border border-linha"
           style={{ background: etapa.cor ?? COR_PADRAO_TIPO[etapa.tipo] }}
         />
 
@@ -260,13 +260,13 @@ function LinhaEtapa({
             value={cor}
             onChange={(evento) => setCor(evento.target.value)}
             disabled={!podeGerenciar || pendente}
-            className="h-9 w-14 cursor-pointer rounded-md border border-black/15 bg-transparent dark:border-white/20"
+            className="h-9 w-14 cursor-pointer rounded-padrao border border-linha-forte bg-transparent"
           />
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="mr-auto text-xs text-neutral-500">
+        <span className="mr-auto text-xs text-texto-3">
           {etapa.total_leads} {etapa.total_leads === 1 ? 'lead' : 'leads'} nesta etapa
         </span>
 
@@ -304,7 +304,7 @@ function LinhaEtapa({
             </button>
             <button
               type="button"
-              className={`${BOTAO_MENOR} text-red-700 dark:text-red-400`}
+              className={`${BOTAO_MENOR} text-perigo`}
               disabled={pendente}
               onClick={confirmarExclusao}
             >
@@ -399,14 +399,14 @@ function FormNovaEtapa({
             value={cor}
             onChange={(evento) => setCor(evento.target.value)}
             disabled={pendente}
-            className="h-9 w-14 cursor-pointer rounded-md border border-black/15 bg-transparent dark:border-white/20"
+            className="h-9 w-14 cursor-pointer rounded-padrao border border-linha-forte bg-transparent"
           />
         </div>
 
         <button
           type="submit"
           disabled={pendente || nome.trim().length === 0}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          className="rounded-padrao bg-acao px-4 py-2 text-sm font-semibold text-white transition hover:bg-acao-forte disabled:opacity-60"
         >
           {pendente ? 'Adicionando…' : 'Adicionar etapa'}
         </button>

@@ -49,7 +49,7 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
         <div className="min-w-0">
           <Link
             href="/crm"
-            className="text-sm text-neutral-600 hover:underline dark:text-neutral-400"
+            className="text-sm text-texto-2 hover:underline"
           >
             ← Voltar para os leads
           </Link>
@@ -57,13 +57,13 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
           <h1 className="mt-2 flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">
             {lead.nome}
             {lead.arquivado && (
-              <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span className="rounded-full bg-alerta-suave px-2.5 py-1 text-xs font-medium text-alerta">
                 Arquivado
               </span>
             )}
           </h1>
 
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-1 text-sm text-texto-2">
             {lead.etapa
               ? `${lead.etapa.pipeline_nome} · ${lead.etapa.stage_nome} (desde ${formatarDataHora(
                   lead.etapa.entrou_na_etapa_em,
@@ -77,7 +77,7 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
 
           <Link
             href={`/crm/${lead.id}/editar`}
-            className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            className="rounded-padrao border border-linha-forte px-4 py-2 text-sm font-medium transition hover:bg-superficie-2"
           >
             Editar
           </Link>
@@ -118,7 +118,7 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Etiquetas</h2>
-        <p className="mt-1 mb-3 text-xs text-neutral-500">
+        <p className="mt-1 mb-3 text-xs text-texto-3">
           Cada etiqueta aplicada ou removida entra na linha do tempo, gravada pelo banco.
         </p>
         <TagsDoLead leadId={lead.id} aplicadas={tagsAplicadas} disponiveis={tagsDaOrganizacao} />
@@ -141,7 +141,7 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
 
       <section className={CARTAO}>
         <h2 className="text-sm font-semibold">Linha do tempo</h2>
-        <p className="mt-1 mb-5 text-xs text-neutral-500">
+        <p className="mt-1 mb-5 text-xs text-texto-3">
           Registrada automaticamente pelo banco a cada evento. Não é editável — nem por
           administrador.
         </p>
@@ -154,7 +154,7 @@ export default async function PaginaLead({ params }: { params: Promise<{ id: str
 function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-widest text-neutral-500">{rotulo}</dt>
+      <dt className="text-xs font-medium uppercase tracking-widest text-texto-3">{rotulo}</dt>
       <dd className="mt-1 text-sm wrap-break-word">{children}</dd>
     </div>
   );

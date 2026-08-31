@@ -63,7 +63,7 @@ export default async function PaginaCrm({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-1 text-sm text-texto-2">
             {ehGestor
               ? 'Você vê todos os leads da organização.'
               : 'Você vê os seus leads e os que ainda estão sem responsável.'}
@@ -72,7 +72,7 @@ export default async function PaginaCrm({
 
         <Link
           href="/crm/novo"
-          className="rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          className="rounded-padrao bg-acao px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-acao-forte"
         >
           Novo lead
         </Link>
@@ -109,7 +109,7 @@ export default async function PaginaCrm({
           <h2 className="text-sm font-semibold">
             {filtrando ? 'Nenhum lead com esses filtros' : 'Nenhum lead por aqui'}
           </h2>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          <p className="mt-2 text-sm text-texto-2">
             {filtrando
               ? 'Ajuste ou limpe os filtros acima para ver mais leads.'
               : mostrarArquivados
@@ -119,7 +119,7 @@ export default async function PaginaCrm({
           {!filtrando && (
             <Link
               href="/crm/novo"
-              className="mt-4 inline-block text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+              className="mt-4 inline-block text-sm font-medium text-acao hover:underline"
             >
               Cadastrar lead
             </Link>
@@ -150,8 +150,8 @@ function FiltroLink({
       aria-current={ativo ? 'page' : undefined}
       className={
         ativo
-          ? 'rounded-md bg-black/5 px-3 py-1.5 font-semibold dark:bg-white/10'
-          : 'rounded-md px-3 py-1.5 text-neutral-600 transition hover:bg-black/5 dark:text-neutral-400 dark:hover:bg-white/10'
+          ? 'rounded-padrao bg-superficie-2 px-3 py-1.5 font-semibold'
+          : 'rounded-padrao px-3 py-1.5 text-texto-2 transition hover:bg-superficie-2'
       }
     >
       {children}
@@ -162,9 +162,9 @@ function FiltroLink({
 /** Tabela para telas largas. */
 function TabelaLeads({ leads }: { leads: LeadDaTela[] }) {
   return (
-    <div className="hidden overflow-x-auto rounded-xl border border-black/10 md:block dark:border-white/15">
+    <div className="hidden overflow-x-auto rounded-grande border border-linha md:block">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-black/10 text-xs uppercase tracking-wide text-neutral-500 dark:border-white/15">
+        <thead className="border-b border-linha text-xs uppercase tracking-wide text-texto-3">
           <tr>
             <th className="px-4 py-3 font-medium">Nome</th>
             <th className="px-4 py-3 font-medium">Telefone</th>
@@ -180,18 +180,18 @@ function TabelaLeads({ leads }: { leads: LeadDaTela[] }) {
           {leads.map((lead) => (
             <tr
               key={lead.id}
-              className="border-b border-black/5 last:border-0 hover:bg-black/3 dark:border-white/10 dark:hover:bg-white/4"
+              className="border-b border-linha last:border-0 hover:bg-superficie-2"
             >
               <td className="px-4 py-3">
                 <Link
                   href={`/crm/${lead.id}`}
-                  className="font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                  className="font-medium text-acao hover:underline"
                 >
                   {lead.nome}
                 </Link>
                 {lead.arquivado && <SeloArquivado />}
                 {lead.previsao_fechamento && (
-                  <p className="mt-0.5 text-xs text-neutral-500">
+                  <p className="mt-0.5 text-xs text-texto-3">
                     Previsão: {formatarData(lead.previsao_fechamento)}
                   </p>
                 )}
@@ -202,14 +202,14 @@ function TabelaLeads({ leads }: { leads: LeadDaTela[] }) {
                 {lead.responsavel ? (
                   lead.responsavel.nome
                 ) : (
-                  <span className="text-neutral-500">Sem responsável</span>
+                  <span className="text-texto-3">Sem responsável</span>
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">{formatarMoeda(lead.valor)}</td>
               <td className="px-4 py-3">
                 <Etapa lead={lead} />
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-neutral-600 dark:text-neutral-400">
+              <td className="px-4 py-3 whitespace-nowrap text-texto-2">
                 {formatarDataHora(lead.criado_em)}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
@@ -232,12 +232,12 @@ function ListaLeads({ leads }: { leads: LeadDaTela[] }) {
       {leads.map((lead) => (
         <li
           key={lead.id}
-          className="rounded-xl border border-black/10 p-4 text-sm dark:border-white/15"
+          className="rounded-grande border border-linha p-4 text-sm"
         >
           <div className="flex items-start justify-between gap-3">
             <Link
               href={`/crm/${lead.id}`}
-              className="font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+              className="font-semibold text-acao hover:underline"
             >
               {lead.nome}
             </Link>
@@ -246,27 +246,27 @@ function ListaLeads({ leads }: { leads: LeadDaTela[] }) {
 
           {lead.arquivado && <SeloArquivado />}
 
-          <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-neutral-600 dark:text-neutral-400">
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-xs text-texto-2">
             <div>
-              <dt className="text-neutral-500">Telefone</dt>
+              <dt className="text-texto-3">Telefone</dt>
               <dd>{ouTraco(lead.telefone)}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Origem</dt>
+              <dt className="text-texto-3">Origem</dt>
               <dd>{lead.origem}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Responsável</dt>
+              <dt className="text-texto-3">Responsável</dt>
               <dd>{lead.responsavel?.nome ?? 'Sem responsável'}</dd>
             </div>
             <div>
-              <dt className="text-neutral-500">Etapa</dt>
+              <dt className="text-texto-3">Etapa</dt>
               <dd>
                 <Etapa lead={lead} />
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-neutral-500">Criado em</dt>
+              <dt className="text-texto-3">Criado em</dt>
               <dd>{formatarDataHora(lead.criado_em)}</dd>
             </div>
           </dl>
@@ -278,15 +278,15 @@ function ListaLeads({ leads }: { leads: LeadDaTela[] }) {
 
 function Etapa({ lead }: { lead: LeadDaTela }) {
   if (!lead.etapa) {
-    return <span className="text-xs text-neutral-500">Fora do funil</span>;
+    return <span className="text-xs text-texto-3">Fora do funil</span>;
   }
 
   const cor =
     lead.etapa.tipo === 'ganho'
-      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+      ? 'bg-acao-suave text-acao'
       : lead.etapa.tipo === 'perdido'
-        ? 'bg-red-500/15 text-red-700 dark:text-red-400'
-        : 'bg-sky-500/15 text-sky-700 dark:text-sky-400';
+        ? 'bg-perigo/15 text-perigo'
+        : 'bg-info-suave text-info';
 
   return (
     <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${cor}`}>
@@ -297,7 +297,7 @@ function Etapa({ lead }: { lead: LeadDaTela }) {
 
 function SeloArquivado() {
   return (
-    <span className="ml-2 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+    <span className="ml-2 inline-block rounded-full bg-alerta-suave px-2 py-0.5 text-xs font-medium text-alerta">
       Arquivado
     </span>
   );
