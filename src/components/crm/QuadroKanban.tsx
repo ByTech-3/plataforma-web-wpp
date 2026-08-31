@@ -23,7 +23,6 @@
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { CAMPO, ERRO, ROTULO } from '@/components/ui';
-import { EnviarMensagem } from '@/components/crm/EnviarMensagem';
 import { TagsDoLead } from '@/components/crm/TagsDoLead';
 import { formatarMoeda, formatarTelefone } from '@/lib/crm/formato';
 import {
@@ -584,11 +583,11 @@ function Cartao({
         />
       </div>
 
-      {cartao.telefone && (
-        <div className="mt-3">
-          <EnviarMensagem leadId={cartao.lead_id} nome={cartao.nome} variante="discreto" />
-        </div>
-      )}
+      {/* NÃO há "Enviar mensagem" aqui, e é de propósito. O quadro é a tela de
+          movimentar o funil — arrastar cartão, ajustar etiqueta, ver o total
+          da coluna. Escrever para um cliente é decisão que pede a ficha aberta
+          na frente, não um botão no meio de dezenas de cartões arrastáveis.
+          O envio continua na listagem do CRM e na ficha do lead. */}
 
       {/* Caminho sem arrastar: telas de toque e teclado. */}
       <label className="mt-3 block sm:hidden">
